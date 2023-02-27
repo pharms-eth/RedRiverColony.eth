@@ -1,0 +1,110 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.7;
+
+import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
+
+contract RServer is ERC721 {
+    struct Server {
+        address owner;
+        string name;
+    }
+
+    address public owner;
+    uint256 private serverCount;
+    mapping(uint256 => Server) private servers;
+    string public constant TOKEN_URI =
+        "ipfs://bafybeig37ioir76s7mg5oobetncojcm3c3hxasyd4rvid4jqhy4gkaheg4/?filename=0-PUG.json";
+
+    constructor(string memory _name) ERC721(_name, "RRCS") {
+        owner = msg.sender;
+    }
+
+    function register(string memory _name) public returns (uint256) {
+        serverCount = serverCount + 1;
+        servers[serverCount] = Server(msg.sender, _name);
+        _safeMint(msg.sender, serverCount);
+        //set token URI
+        //_setTokenURI()
+        return serverCount;
+    }
+
+    function tokenURI(
+        uint256 tokenId
+    ) public view override returns (string memory) {
+        // require(_exists(tokenId), "ERC721Metadata: URI query for nonexistent token");
+        return TOKEN_URI;
+    }
+
+    function withdraw() public {
+        require(msg.sender == owner);
+        (bool success, ) = owner.call{value: address(this).balance}("");
+        require(success);
+    }
+
+    function getServerCount() public view returns (uint256) {
+        return serverCount;
+    }
+}
+
+// https://www.youtube.com/watch?v=gyMwXuJrbJQ
+// Lesson 14: Hardhat NFTs
+// (20:54:57) Random IPFS NFT
+// (21:03:19) Random IPFS NFT part II - Mapping Chainlink VRF Requests
+// (21:07:38) Random IPFS NFT part III - Creating Rare NFTs
+// (21:15:19) Random IPFS NFT part IV - Setting the NFT images
+// (21:19:02) Random IPFS NFT part  V - Setting an NFT Mint Price
+// (21:24:25) Random IPFS NFT part  VI - Random IPFS NFT Recap
+// (21:25:58) Random IPFS NFT part  VII - Deploy Script
+// (21:31:08) Random IPFS NFT part  VIII  - Uploading token images with Pinata
+// (21:47:27) Random IPFS NFT part  IX - Uploading token URIs (metadata) with Pinata
+// (21:57:08) Random IPFS NFT part  X - Deploying III
+// (22:00:52) Random IPFS NFT part  XI -  Random IPFS NFT Tests
+
+// (22:03:11) Dynamic SVG On-Chain NFT
+// (22:04:33) Dynamic SVG On-Chain NFT Part II - What is an SVG ?
+// (22:07:06) Dynamic SVG On-Chain NFT Part III - Initial code
+// (22:10:22) Dynamic SVG On-Chain NFT Part IV - Base64  Encoding
+// (22:16:31) Advanced Section Encoding, Opcodes and Calls - abi.encode & abi.encodePacked
+// (22:38:58) Advanced Section Encoding, Opcodes and Calls - abi.encode & abi.encodePacked - Introduction to Encoding Function Calls Directly
+// (22:44:46) Advanced Section Encoding, Opcodes and Calls - abi.encode & abi.encodePacked - Encoding recap
+// (22:46:46) Advanced Section Encoding, Opcodes and Calls - abi.encode & abi.encodePacked - Encoding Function Calls Directly
+// (23:01:11) Dynamic SVG On-Chain NFT Part V - Creating an NFT TokenURI On-Chain
+// (23:09:30) Dynamic SVG On-Chain NFT Part V - Making the NFT Dynamic
+// (23:15:13) Dynamic SVG On-Chain NFT Part VI - Deploy Script
+// (23:21:40) Dynamic SVG On-Chain NFT Part VII - Writing Tests
+// (23:22:15) Deploying the NFT to a Testnet
+// (23:34:11) Lesson 14 Recap
+
+// (23:37:03) Lesson 15: NextJS NFT Marketplace (Full Stack / Front End)
+// 	(23:43:23) Hardhat Setup
+// 	(23:46:12) NftMarketplace.sol
+// 	(24:06:26) Reentrancy Attacks
+// 	(24:19:13) NftMarketplace.sol - Continued
+// 	(24:26:17) NftMarketplace.sol - Deploy script
+// 	(24:32:46) NftMarketplace.sol - Tests
+// 	(24:43:38) NftMarketplace.sol - Scripts
+// —————————————————————————————————
+// (24:48:27) Part II: Moralis Front End - Introduction
+// 	(24:52:33) NextJS Setup
+// 	(25:01:59) Adding TailWind
+// 	(25:05:31) Introduction to Indexing in Web3
+// 	(25:12:09) What is Moralis
+// 	(25:19:37) Connecting Moralis To our Local Hardhat Node
+// 	(25:34:54) Moralis Event Sync
+// 	(25:58:48) Resetting the Local Chain
+// 	(26:00:56) Moralis Cloud Functions
+// 	(26:19:42) Pratice Resetting The Local Chain
+// 	(26:22:24) Moralis Cloud Functions II
+// 	(26:42:12) Querying the Moralis Database
+// 	(26:48:43) Rendering the NFT Images
+// 	(27:17:16) Update Listing Modal
+// 	(27:37:14) Buy NFT Listing
+// 	(27:40:54) Sale Page Listing NFTs for Sale
+// —————————————————————————————————
+// (27:57:25) Part III: TheGraph Front End
+// 	(28:03:07) What is The Graph ?
+// 	(28:07:07) Building a Subgraph
+// 	(28:35:19) Deploying our Subgraph
+// 	(28:39:57) Reading from the Graph
+// 	(28:51:39) Hosting our Dapp
+// 	(28:53:10) Finished full stack basics
