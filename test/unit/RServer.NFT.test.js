@@ -8,7 +8,7 @@ const tokens = (n) => {
 
 !developmentChains.includes(network.name)
     ? describe.skip
-    : describe("RRCServer", function () {
+    : describe("RRCServer - NFT", function () {
           let server
           let deployer
           let user2
@@ -35,7 +35,9 @@ const tokens = (n) => {
               //   server = await NFT.deploy(NAME, SYMBOL, COST)
 
               // // Mint
-              const transaction = await server.connect(deployer).register(URL)
+              const transaction = await server
+                  .connect(deployer)
+                  .register("TESTServer")
               //   await transaction.wait()
           })
 

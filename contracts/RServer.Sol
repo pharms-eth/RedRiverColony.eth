@@ -2,11 +2,23 @@
 pragma solidity ^0.8.7;
 
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
+error RRCServer_ServerNoPermission(
+    uint256 serverId,
+    address perp,
+    string accessPoint
+);
+error RRCServer_InvalidStringParameter(string param, string value);
+error RRCServer_Index(uint256 index);
 
 contract RServer is ERC721 {
     struct Server {
         address owner;
         string name;
+        uint256 id;
+        uint256[] channels;
+        address[] users;
+        string icon;
+        string message;
     }
 
     address public owner;
@@ -15,13 +27,23 @@ contract RServer is ERC721 {
     string public constant TOKEN_URI =
         "ipfs://bafybeig37ioir76s7mg5oobetncojcm3c3hxasyd4rvid4jqhy4gkaheg4/?filename=0-PUG.json";
 
+    event ServerNameChanged(uint256 indexed serverId, string newName);
+
     constructor(string memory _name) ERC721(_name, "RRCS") {
         owner = msg.sender;
     }
 
     function register(string memory _name) public returns (uint256) {
         serverCount = serverCount + 1;
-        servers[serverCount] = Server(msg.sender, _name);
+        servers[serverCount] = Server(
+            msg.sender,
+            _name,
+            serverCount,
+            new uint256[](0),
+            new address[](0),
+            "",
+            ""
+        );
         _safeMint(msg.sender, serverCount);
         //set token URI
         //_setTokenURI()
@@ -43,6 +65,32 @@ contract RServer is ERC721 {
 
     function getServerCount() public view returns (uint256) {
         return serverCount;
+    }
+
+    function getServer(uint256 serverId) public view returns (Server memory) {
+        return servers[serverId];
+    }
+
+    function updateServerName(uint256 serverId, string memory newName) public {
+        if (serverId <= 0 || serverId > serverCount) {
+            revert RRCServer_Index(serverId);
+        }
+
+        if (servers[serverId].owner != msg.sender) {
+            revert RRCServer_ServerNoPermission(
+                serverId,
+                msg.sender,
+                "Update Name"
+            );
+        }
+
+        if (bytes(newName).length <= 0 || bytes(newName).length > 256) {
+            revert RRCServer_InvalidStringParameter("name", newName);
+        }
+
+        servers[serverId].name = newName;
+
+        emit ServerNameChanged(serverId, newName);
     }
 }
 
