@@ -1442,6 +1442,11 @@ chai-as-promised@^7.1.1:
   dependencies:
     check-error "^1.0.2"
 
+chai-bignumber@^3.1.0:
+  version "3.1.0"
+  resolved "https://registry.yarnpkg.com/chai-bignumber/-/chai-bignumber-3.1.0.tgz#e196456c760df21f0e124f6df922289ea15a7e4c"
+  integrity sha512-omxEc80jAU+pZwRmoWr3aEzeLad4JW3iBhLRQlgISvghBdIxrMT7mVAGsDz4WSyCkKowENshH2j9OABAhld7QQ==
+
 chai@^4.2.0, chai@^4.3.4:
   version "4.3.7"
   resolved "https://registry.yarnpkg.com/chai/-/chai-4.3.7.tgz#ec63f6df01829088e8bf55fca839bcd464a8ec51"

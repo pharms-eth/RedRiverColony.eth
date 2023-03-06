@@ -8,7 +8,16 @@ error RRCServer_ServerNoPermission(
     string accessPoint
 );
 error RRCServer_InvalidStringParameter(string param, string value);
+error RRCServer_InvalidUint256Parameter(string param, uint256 value);
 error RRCServer_Index(uint256 index);
+error RRCServer_InvalidAddressParameter(string parameter);
+error RRCServer_UserAlreadyExists(uint256 serverId, address user);
+error RRCServer_UserNotFound(uint256 serverId, address user);
+
+// error InvalidServerId()
+// error InvalidChannelId()
+error RRCServer_ChannelAlreadyExists(uint256 channelId);
+error RRCServer_ChannelNotFound(uint256 channelId);
 
 contract RServer is ERC721 {
     struct Server {
@@ -28,6 +37,24 @@ contract RServer is ERC721 {
         "ipfs://bafybeig37ioir76s7mg5oobetncojcm3c3hxasyd4rvid4jqhy4gkaheg4/?filename=0-PUG.json";
 
     event ServerNameChanged(uint256 indexed serverId, string newName);
+    event ServerIconChanged(uint256 indexed serverId, string newIcon);
+    event ServermessageChanged(uint256 indexed serverId, string newMessage);
+    event UserDeletedFromServer(
+        uint256 indexed serverId,
+        address indexed userAddress
+    );
+    event ChannelDeletedFromServer(
+        uint256 indexed serverId,
+        uint256 indexed channelId
+    );
+    event ChannelAddedToServer(
+        uint256 indexed serverId,
+        uint256 indexed channelId
+    );
+    event UserAddedToServer(
+        uint256 indexed serverId,
+        address indexed userAddress
+    );
 
     constructor(string memory _name) ERC721(_name, "RRCS") {
         owner = msg.sender;
@@ -91,6 +118,222 @@ contract RServer is ERC721 {
         servers[serverId].name = newName;
 
         emit ServerNameChanged(serverId, newName);
+    }
+
+    function updateServerIcon(uint256 serverId, string memory newIcon) public {
+        if (serverId <= 0 || serverId > serverCount) {
+            revert RRCServer_Index(serverId);
+        }
+
+        if (servers[serverId].owner != msg.sender) {
+            revert RRCServer_ServerNoPermission(
+                serverId,
+                msg.sender,
+                "Update Icon"
+            );
+        }
+
+        if (bytes(newIcon).length <= 0) {
+            revert RRCServer_InvalidStringParameter("icon", newIcon);
+        }
+
+        servers[serverId].icon = newIcon;
+
+        emit ServerIconChanged(serverId, newIcon);
+    }
+
+    function updateServerWelcomeMessage(
+        uint256 serverId,
+        string memory newMessage
+    ) public {
+        if (serverId <= 0 || serverId > serverCount) {
+            revert RRCServer_Index(serverId);
+        }
+
+        if (servers[serverId].owner != msg.sender) {
+            revert RRCServer_ServerNoPermission(
+                serverId,
+                msg.sender,
+                "Update Welcome Message"
+            );
+        }
+
+        if (bytes(newMessage).length <= 0) {
+            revert RRCServer_InvalidStringParameter(
+                "welcome message",
+                newMessage
+            );
+        }
+
+        servers[serverId].message = newMessage;
+
+        emit ServermessageChanged(serverId, newMessage);
+    }
+
+    function addUserToServer(uint256 serverId, address userAddress) public {
+        if (serverId <= 0 || serverId > serverCount) {
+            revert RRCServer_Index(serverId);
+        }
+
+        if (servers[serverId].owner != msg.sender) {
+            revert RRCServer_ServerNoPermission(
+                serverId,
+                msg.sender,
+                "Add User"
+            );
+        }
+
+        if (userAddress == address(0)) {
+            revert RRCServer_InvalidAddressParameter("userAddress");
+        }
+
+        if (contains(servers[serverId].users, userAddress)) {
+            revert RRCServer_UserAlreadyExists(serverId, userAddress);
+        }
+
+        servers[serverId].users.push(userAddress);
+
+        emit UserAddedToServer(serverId, userAddress);
+    }
+
+    function deleteUserFromServer(
+        uint256 serverId,
+        address userAddress
+    ) public {
+        if (serverId <= 0 || serverId > serverCount) {
+            revert RRCServer_Index(serverId);
+        }
+
+        if (servers[serverId].owner != msg.sender) {
+            revert RRCServer_ServerNoPermission(
+                serverId,
+                msg.sender,
+                "Delete User"
+            );
+        }
+
+        Server storage server = servers[serverId];
+        uint256 userIndex = getUserIndex(server, userAddress);
+        if (userIndex >= server.users.length) {
+            revert RRCServer_UserNotFound(serverId, userAddress);
+        }
+
+        // Swap the user to be deleted with the last user in the array
+        if (userIndex < server.users.length - 1) {
+            server.users[userIndex] = server.users[server.users.length - 1];
+        }
+
+        // Remove the last user from the array
+        server.users.pop();
+
+        // Emit an event to indicate that a user was deleted from the server
+        emit UserDeletedFromServer(serverId, userAddress);
+    }
+
+    function getUserIndex(
+        Server storage server,
+        address userAddress
+    ) internal view returns (uint256) {
+        for (uint256 i = 0; i < server.users.length; i++) {
+            if (server.users[i] == userAddress) {
+                return i;
+            }
+        }
+        return server.users.length;
+    }
+
+    function addChannelToServer(uint256 serverId, uint256 channelId) public {
+        if (serverId == 0 || serverId > serverCount) {
+            revert RRCServer_Index(serverId);
+        }
+        if (servers[serverId].owner != msg.sender) {
+            revert RRCServer_ServerNoPermission(
+                serverId,
+                msg.sender,
+                "add to channels"
+            );
+        }
+        if (channelId == 0) {
+            revert RRCServer_InvalidUint256Parameter("channel id", channelId);
+        }
+        if (contains(servers[serverId].channels, channelId)) {
+            revert RRCServer_ChannelAlreadyExists(channelId);
+        }
+
+        servers[serverId].channels.push(channelId);
+
+        emit ChannelAddedToServer(serverId, channelId);
+    }
+
+    function deleteChannelFromServer(
+        uint256 serverId,
+        uint256 channelId
+    ) public {
+        if (serverId == 0 || serverId > serverCount) {
+            revert RRCServer_Index(serverId);
+        }
+        if (servers[serverId].owner != msg.sender) {
+            revert RRCServer_ServerNoPermission(
+                serverId,
+                msg.sender,
+                "delete channel"
+            );
+        }
+
+        Server storage server = servers[serverId];
+        uint256 channelIndex = getChannelIndex(server, channelId);
+        if (channelIndex == server.channels.length) {
+            revert RRCServer_ChannelNotFound(channelId);
+        }
+
+        // Swap the channel to be deleted with the last channel in the array
+        if (channelIndex < server.channels.length - 1) {
+            server.channels[channelIndex] = server.channels[
+                server.channels.length - 1
+            ];
+        }
+
+        // Remove the last channel from the array
+        server.channels.pop();
+
+        // Emit an event to indicate that a channel was deleted from the server
+        emit ChannelDeletedFromServer(serverId, channelId);
+    }
+
+    function getChannelIndex(
+        Server storage server,
+        uint256 channelId
+    ) internal view returns (uint256) {
+        for (uint256 i = 0; i < server.channels.length; i++) {
+            if (server.channels[i] == channelId) {
+                return i;
+            }
+        }
+        return server.channels.length;
+    }
+
+    function contains(
+        address[] memory array,
+        address element
+    ) internal pure returns (bool) {
+        for (uint256 i = 0; i < array.length; i++) {
+            if (array[i] == element) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    function contains(
+        uint256[] memory array,
+        uint256 element
+    ) internal pure returns (bool) {
+        for (uint256 i = 0; i < array.length; i++) {
+            if (array[i] == element) {
+                return true;
+            }
+        }
+        return false;
     }
 }
 
