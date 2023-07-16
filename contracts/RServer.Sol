@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.7;
 
-import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
+import {IERC721Metadata} from "@openzeppelin/contracts/token/ERC721/extensions/IERC721Metadata.sol";
+import {ERC165} from "@openzeppelin/contracts/utils/introspection/ERC165.sol";
+
 error RRCServer_ServerNoPermission(
     uint256 serverId,
     address perp,
@@ -19,7 +21,15 @@ error RRCServer_UserNotFound(uint256 serverId, address user);
 error RRCServer_ChannelAlreadyExists(uint256 channelId);
 error RRCServer_ChannelNotFound(uint256 channelId);
 
-contract RServer is ERC721 {
+//24843
+contract RServer is ERC165, IERC721Metadata {
+    enum UserRole {
+        None,
+        Member,
+        Moderator,
+        Admin
+    }
+
     struct Server {
         address owner;
         string name;
@@ -28,90 +38,280 @@ contract RServer is ERC721 {
         address[] users;
         string icon;
         string message;
+        address nameResolver;
+        // mapping(address => string) userRoles;
     }
 
-    address public owner;
+    address public immutable contractOwner;
+    string private _name;
+    string private _symbol;
     uint256 private serverCount;
     mapping(uint256 => Server) private servers;
-    string public constant TOKEN_URI =
-        "ipfs://bafybeig37ioir76s7mg5oobetncojcm3c3hxasyd4rvid4jqhy4gkaheg4/?filename=0-PUG.json";
+    mapping(uint256 => mapping(address => bool)) bannedUsers;
+    mapping(uint256 => mapping(address => bool)) mutedUsers;
+    mapping(uint256 => mapping(address => UserRole)) userRoles;
+    mapping(address => uint256) private _balances;
+    mapping(uint256 => address) private _tokenApprovals;
+    mapping(address => mapping(address => bool)) private _operatorApprovals;
 
     event ServerNameChanged(uint256 indexed serverId, string newName);
+    event ServerNameResolverChanged(uint256 indexed serverId, address newName);
     event ServerIconChanged(uint256 indexed serverId, string newIcon);
     event ServermessageChanged(uint256 indexed serverId, string newMessage);
-    event UserDeletedFromServer(
-        uint256 indexed serverId,
-        address indexed userAddress
-    );
-    event ChannelDeletedFromServer(
-        uint256 indexed serverId,
-        uint256 indexed channelId
-    );
-    event ChannelAddedToServer(
-        uint256 indexed serverId,
-        uint256 indexed channelId
-    );
-    event UserAddedToServer(
-        uint256 indexed serverId,
-        address indexed userAddress
-    );
+    event UserDeletedFromServer(uint256 indexed serverId,address indexed userAddress);
+    event MetadataUpdate(uint256 _tokenId);
+    event ChannelDeletedFromServer(uint256 indexed serverId,uint256 indexed channelId);
+    event ChannelAddedToServer(uint256 indexed serverId,uint256 indexed channelId);
+    event UserAddedToServer(uint256 indexed serverId,address indexed userAddress);
+    event UserMutedOnServer(uint256 indexed serverId,address indexed userAddress);
+    event UserUnmutedOnServer(uint256 indexed serverId,address indexed userAddress);
+    event UserBannedOnServer(uint256 indexed serverId,address indexed userAddress);
+    event UserUnbannedOnServer(uint256 indexed serverId,address indexed userAddress);
 
-    constructor(string memory _name) ERC721(_name, "RRCS") {
-        owner = msg.sender;
+    constructor(string memory name_) {
+        _symbol = "RRCS";
+        _name = name_;
+        contractOwner = msg.sender;
     }
 
-    function register(string memory _name) public returns (uint256) {
+
+    // function supportsInterface(bytes4 interfaceId) public view virtual override(ERC165, IERC165) returns (bool) {
+    //     return
+    //         interfaceId == type(IERC721).interfaceId ||
+    //         interfaceId == type(IERC721Metadata).interfaceId ||
+    //         interfaceId == type(IERC165).interfaceId;
+    // }
+
+    modifier onlyExistingToken(uint256 tokenId) {
+        require(
+            _exists(tokenId),
+            "ERC721: operator query for nonexistent token"
+        );
+        _;
+    }
+
+    modifier onlyOwnerOf(uint256 tokenId, string memory _function) {
+        address serverOwner = _ownerOf(tokenId);
+        if (userRoles[tokenId][msg.sender] != UserRole.Admin || serverOwner != msg.sender) {
+            revert RRCServer_ServerNoPermission(
+                tokenId,
+                msg.sender,
+                _function
+            );
+        }
+        _;
+    }
+
+    modifier tokenInRange(uint256 _serverId) {
+        if (_serverId <= 0 || _serverId > serverCount) {
+            revert RRCServer_Index(_serverId);
+        }
+        _;
+    }
+
+    modifier validateString(string memory _newValue, string memory _parameter) {
+        if (bytes(_newValue).length <= 0) {
+            revert RRCServer_InvalidStringParameter(_parameter, _newValue);
+        }
+        _;
+    }
+
+    modifier isAddressZero(address _address) {
+        if (_address == address(0)) {
+            revert RRCServer_InvalidAddressParameter("userAddress");
+        }
+        _;
+    }
+
+    function register(
+        string memory name_,
+        string memory _icon,
+        address nameResolver
+    ) public returns (uint256) {
         serverCount = serverCount + 1;
         servers[serverCount] = Server(
             msg.sender,
-            _name,
+            name_,
             serverCount,
             new uint256[](0),
             new address[](0),
+            _icon,
             "",
-            ""
+            nameResolver
         );
-        _safeMint(msg.sender, serverCount);
-        //set token URI
-        //_setTokenURI()
+
+        unchecked {
+            _balances[msg.sender] += 1;
+        }
+
+        emit Transfer(address(0), msg.sender, serverCount);
         return serverCount;
+    }
+
+    function burn(uint256 tokenId) public virtual onlyExistingToken(tokenId) onlyOwnerOf(tokenId, "BURN") {
+
+        address serverOwner = _ownerOf(tokenId);
+        
+        unchecked {
+            _balances[serverOwner] -= 1;
+        }
+
+        delete _tokenApprovals[tokenId];
+        delete servers[tokenId];
+
+        emit Transfer(serverOwner, address(0), tokenId);
     }
 
     function tokenURI(
         uint256 tokenId
-    ) public view override returns (string memory) {
-        // require(_exists(tokenId), "ERC721Metadata: URI query for nonexistent token");
-        return TOKEN_URI;
+    ) public view virtual onlyExistingToken(tokenId) returns (string memory) {
+
+        string memory _tokenURI;// = servers[tokenId].uri;
+        string memory base = _baseURI();
+
+        // If there is no base URI, return the token URI.
+        if (bytes(base).length == 0) {
+            return _tokenURI;
+        }
+        // If both are set, concatenate the baseURI and tokenURI (via abi.encodePacked).
+        if (bytes(_tokenURI).length > 0) {
+            return string(abi.encodePacked(base, _tokenURI));
+        }
+
+        return "ipfs://bafybeig37ioir76s7mg5oobetncojcm3c3hxasyd4rvid4jqhy4gkaheg4/?filename=0-PUG.json";
+        // return string(abi.encodePacked(base, tokenId.toString()))
+        // {
+        //     "title": "Asset Metadata",
+        //     "type": "object",
+        //     "properties": {
+        //         "name": {
+        //             "type": "string",
+        //             "description": "Identifies the asset to which this NFT represents"
+        //         },
+        //         "description": {
+        //             "type": "string",
+        //             "description": "Describes the asset to which this NFT represents"
+        //         },
+        //         "image": {
+        //             "type": "string",
+        //             "description": "A URI pointing to a resource with mime type image/* representing the asset to which this NFT represents. Consider making any images at a width between 320 and 1080 pixels and aspect ratio between 1.91:1 and 4:5 inclusive."
+        //         }
+        //     }
+        // }
+
+
+    //         {
+    //   "name": "My NFT",
+    //   "description": "This is a description of my NFT.",
+    //   "image": "https://example.com/my-nft.png",
+    //   "ensName": "myNFT.eth",
+    //   "attributes": [
+    //     {
+    //       "trait_type": "Rarity",
+    //       "value": "Common"
+    //     },
+    //     {
+    //       "trait_type": "Size",
+    //       "value": "Large"
+    //     }
+    //   ],
+    //   "external_url": "https://example.com/my-nft",
+    //   "background_color": "ffffff"
+    // }
+    }
+
+    function _baseURI() internal view virtual returns (string memory) {
+        return "";
+    }
+
+    function _ownerOf(uint256 tokenId) internal view virtual returns (address) {
+        return servers[tokenId].owner;
+    }
+
+    function _exists(uint256 tokenId) internal view virtual returns (bool) {
+        return _ownerOf(tokenId) != address(0);
+    }
+
+    function ownerOf(uint256 tokenId) public view virtual returns (address) {
+        address ownerOF = _ownerOf(tokenId);
+        require(ownerOF != address(0), "ERC721: address zero is not a valid owner");
+        return ownerOF;
+    }
+
+    function balanceOf(address owner) public view virtual isAddressZero(owner) returns (uint256) {
+        return _balances[owner];
     }
 
     function withdraw() public {
-        require(msg.sender == owner);
-        (bool success, ) = owner.call{value: address(this).balance}("");
+        require(msg.sender == contractOwner);
+        (bool success, ) = contractOwner.call{value: address(this).balance}("");
         require(success);
+    }
+
+    function banUser(uint256 _serverId, address _user) public tokenInRange(_serverId) onlyOwnerOf(_serverId, "Update Name") {
+        bannedUsers[_serverId][_user] = true;
+        emit UserBannedOnServer(_serverId, _user);
+    }
+
+    function unbanUser(uint256 _serverId, address _user) public tokenInRange(_serverId) onlyOwnerOf(_serverId, "Update Name") {
+        bannedUsers[_serverId][_user] = false;
+        emit UserUnbannedOnServer(_serverId, _user);
+    }
+
+    function isUserBanned(
+        uint256 _serverId,
+        address _user
+    ) public view tokenInRange(_serverId) onlyOwnerOf(_serverId, "Update Name") returns (bool) {
+        return bannedUsers[_serverId][_user];
+    }
+
+    function muteUser(uint256 _serverId, address _user) public tokenInRange(_serverId) onlyOwnerOf(_serverId, "Update Name") {
+        mutedUsers[_serverId][_user] = true;
+        emit UserMutedOnServer(_serverId, _user);
+    }
+
+    function unmuteUser(uint256 _serverId, address _user) public tokenInRange(_serverId) onlyOwnerOf(_serverId, "Update Name") {
+        mutedUsers[_serverId][_user] = false;
+        emit UserMutedOnServer(_serverId, _user);
+    }
+
+    function isUserMuted(
+        uint256 _serverId,
+        address _user
+    ) public view tokenInRange(_serverId) onlyOwnerOf(_serverId, "Update Name") returns (bool) {
+        return mutedUsers[_serverId][_user];
+    }
+
+    function setUserRole(uint256 _serverId, address _user, UserRole _role) public tokenInRange(_serverId) onlyOwnerOf(_serverId, "Permission Denied: User Role Modification") {
+        userRoles[_serverId][_user] = _role;
+    }
+
+    function getUserRole(uint256 _serverId, address _user) public view tokenInRange(_serverId) returns (UserRole) {
+        return userRoles[_serverId][_user];
+    }
+
+    function removeUserRole(uint256 _serverId, address _user) public tokenInRange(_serverId) onlyOwnerOf(_serverId, "Permission Denied: User Role Modification"){        
+        userRoles[_serverId][_user] = UserRole.None;
+    }
+
+    function name() public view virtual returns (string memory) {
+        return _name;
+    }
+
+    function symbol() public view virtual returns (string memory) {
+        return _symbol;
     }
 
     function getServerCount() public view returns (uint256) {
         return serverCount;
     }
 
-    function getServer(uint256 serverId) public view returns (Server memory) {
+    function getServer(uint256 serverId) public view onlyExistingToken(serverId) returns (Server memory) {
         return servers[serverId];
     }
 
-    function updateServerName(uint256 serverId, string memory newName) public {
-        if (serverId <= 0 || serverId > serverCount) {
-            revert RRCServer_Index(serverId);
-        }
-
-        if (servers[serverId].owner != msg.sender) {
-            revert RRCServer_ServerNoPermission(
-                serverId,
-                msg.sender,
-                "Update Name"
-            );
-        }
-
-        if (bytes(newName).length <= 0 || bytes(newName).length > 256) {
+    function updateServerName(uint256 serverId, string memory newName) public tokenInRange(serverId) onlyOwnerOf(serverId, "Update Name") validateString(newName, "name") {
+        if (bytes(newName).length > 256) {
             revert RRCServer_InvalidStringParameter("name", newName);
         }
 
@@ -120,73 +320,27 @@ contract RServer is ERC721 {
         emit ServerNameChanged(serverId, newName);
     }
 
-    function updateServerIcon(uint256 serverId, string memory newIcon) public {
-        if (serverId <= 0 || serverId > serverCount) {
-            revert RRCServer_Index(serverId);
-        }
-
-        if (servers[serverId].owner != msg.sender) {
-            revert RRCServer_ServerNoPermission(
-                serverId,
-                msg.sender,
-                "Update Icon"
-            );
-        }
-
-        if (bytes(newIcon).length <= 0) {
-            revert RRCServer_InvalidStringParameter("icon", newIcon);
-        }
-
+    function updateServerIcon(uint256 serverId, string memory newIcon) public tokenInRange(serverId) onlyOwnerOf(serverId, "Update Icon") validateString(newIcon, "icon") {
         servers[serverId].icon = newIcon;
-
         emit ServerIconChanged(serverId, newIcon);
     }
 
     function updateServerWelcomeMessage(
         uint256 serverId,
         string memory newMessage
-    ) public {
-        if (serverId <= 0 || serverId > serverCount) {
-            revert RRCServer_Index(serverId);
-        }
-
-        if (servers[serverId].owner != msg.sender) {
-            revert RRCServer_ServerNoPermission(
-                serverId,
-                msg.sender,
-                "Update Welcome Message"
-            );
-        }
-
-        if (bytes(newMessage).length <= 0) {
-            revert RRCServer_InvalidStringParameter(
-                "welcome message",
-                newMessage
-            );
-        }
-
+    ) public tokenInRange(serverId) onlyOwnerOf(serverId, "Update Welcom Message") validateString(newMessage,"welcome message" ) {
         servers[serverId].message = newMessage;
 
         emit ServermessageChanged(serverId, newMessage);
     }
 
-    function addUserToServer(uint256 serverId, address userAddress) public {
-        if (serverId <= 0 || serverId > serverCount) {
-            revert RRCServer_Index(serverId);
-        }
+    function updateServerNameResolver(uint256 serverId, address nameResolver) public tokenInRange(serverId) onlyOwnerOf(serverId, "Update Name") {
+        servers[serverId].nameResolver = nameResolver;
 
-        if (servers[serverId].owner != msg.sender) {
-            revert RRCServer_ServerNoPermission(
-                serverId,
-                msg.sender,
-                "Add User"
-            );
-        }
+        emit ServerNameResolverChanged(serverId, nameResolver);
+    }
 
-        if (userAddress == address(0)) {
-            revert RRCServer_InvalidAddressParameter("userAddress");
-        }
-
+    function addUserToServer(uint256 serverId, address userAddress) public tokenInRange(serverId) onlyOwnerOf(serverId, "Add User") isAddressZero(userAddress) {
         if (contains(servers[serverId].users, userAddress)) {
             revert RRCServer_UserAlreadyExists(serverId, userAddress);
         }
@@ -199,19 +353,7 @@ contract RServer is ERC721 {
     function deleteUserFromServer(
         uint256 serverId,
         address userAddress
-    ) public {
-        if (serverId <= 0 || serverId > serverCount) {
-            revert RRCServer_Index(serverId);
-        }
-
-        if (servers[serverId].owner != msg.sender) {
-            revert RRCServer_ServerNoPermission(
-                serverId,
-                msg.sender,
-                "Delete User"
-            );
-        }
-
+    ) public tokenInRange(serverId) onlyOwnerOf(serverId, "Delete User") isAddressZero(userAddress) {
         Server storage server = servers[serverId];
         uint256 userIndex = getUserIndex(server, userAddress);
         if (userIndex >= server.users.length) {
@@ -230,29 +372,7 @@ contract RServer is ERC721 {
         emit UserDeletedFromServer(serverId, userAddress);
     }
 
-    function getUserIndex(
-        Server storage server,
-        address userAddress
-    ) internal view returns (uint256) {
-        for (uint256 i = 0; i < server.users.length; i++) {
-            if (server.users[i] == userAddress) {
-                return i;
-            }
-        }
-        return server.users.length;
-    }
-
-    function addChannelToServer(uint256 serverId, uint256 channelId) public {
-        if (serverId == 0 || serverId > serverCount) {
-            revert RRCServer_Index(serverId);
-        }
-        if (servers[serverId].owner != msg.sender) {
-            revert RRCServer_ServerNoPermission(
-                serverId,
-                msg.sender,
-                "add to channels"
-            );
-        }
+    function addChannelToServer(uint256 serverId, uint256 channelId) public tokenInRange(serverId) onlyOwnerOf(serverId, "Add to channels") {
         if (channelId == 0) {
             revert RRCServer_InvalidUint256Parameter("channel id", channelId);
         }
@@ -268,18 +388,7 @@ contract RServer is ERC721 {
     function deleteChannelFromServer(
         uint256 serverId,
         uint256 channelId
-    ) public {
-        if (serverId == 0 || serverId > serverCount) {
-            revert RRCServer_Index(serverId);
-        }
-        if (servers[serverId].owner != msg.sender) {
-            revert RRCServer_ServerNoPermission(
-                serverId,
-                msg.sender,
-                "delete channel"
-            );
-        }
-
+    ) public tokenInRange(serverId) onlyOwnerOf(serverId, "delete channel") {
         Server storage server = servers[serverId];
         uint256 channelIndex = getChannelIndex(server, channelId);
         if (channelIndex == server.channels.length) {
@@ -300,23 +409,38 @@ contract RServer is ERC721 {
         emit ChannelDeletedFromServer(serverId, channelId);
     }
 
+    function getUserIndex(
+        Server storage server,
+        address userAddress
+    ) internal view returns (uint256) {
+        uint256 len = server.users.length;
+        for (uint256 i = 0; i < len; i++) {
+            if (server.users[i] == userAddress) {
+                return i;
+            }
+        }
+        return len;
+    }
+
     function getChannelIndex(
         Server storage server,
         uint256 channelId
     ) internal view returns (uint256) {
-        for (uint256 i = 0; i < server.channels.length; i++) {
-            if (server.channels[i] == channelId) {
-                return i;
+        uint256 len = server.channels.length;
+        for (uint256 i = len; i > 0; i--) {
+            if (server.channels[i - 1] == channelId) {
+                return i - 1;
             }
         }
-        return server.channels.length;
+        return len;
     }
 
     function contains(
         address[] memory array,
         address element
     ) internal pure returns (bool) {
-        for (uint256 i = 0; i < array.length; i++) {
+        uint256 len = array.length;
+        for (uint256 i = 0; i < len; i++) {
             if (array[i] == element) {
                 return true;
             }
@@ -328,12 +452,114 @@ contract RServer is ERC721 {
         uint256[] memory array,
         uint256 element
     ) internal pure returns (bool) {
-        for (uint256 i = 0; i < array.length; i++) {
+        uint256 len = array.length;
+        for (uint256 i = 0; i < len; i++) {
             if (array[i] == element) {
                 return true;
             }
         }
         return false;
+    }
+
+    function totalSupply() external view returns (uint256) {
+        return serverCount;
+    }
+
+    function tokenByIndex(uint256 _index) external view tokenInRange(_index) returns (uint256) {
+        return _index;
+    }
+
+    function tokenOfOwnerByIndex(address _owner, uint256 _index) external view returns (uint256) {
+        uint256 count;
+        uint256 lastSeen;
+        for (uint256 i = 0; i < serverCount; i++) {
+            count += 1;
+            if (servers[i].owner == _owner) {
+                _index -= 1;
+                lastSeen = count;
+                if (_index == 0) {
+                    return count;
+                }
+            }
+        }
+
+        return lastSeen;
+    }
+
+    function _isApprovedOrOwner(address spender, uint256 tokenId) internal view virtual returns (bool) {
+        address owner = ownerOf(tokenId);
+        return (spender == owner || isApprovedForAll(owner, spender) || getApproved(tokenId) == spender);
+    }
+
+    function safeTransferFrom(address _from, address _to, uint256 _tokenId, bytes memory data) public virtual {
+        require(_isApprovedOrOwner(msg.sender, _tokenId), "ERC721: caller is not token owner or approved");
+        _safeTransfer(_from, _to, _tokenId, data);
+    }
+
+	function safeTransferFrom(address _from, address _to, uint256 _tokenId) public virtual {
+        safeTransferFrom(_from, _to, _tokenId, "");
+    }
+
+	function transferFrom(address from, address to, uint256 tokenId) public virtual {
+        //solhint-disable-next-line max-line-length
+        require(_isApprovedOrOwner(msg.sender, tokenId), "ERC721: caller is not token owner or approved");
+
+        _transfer(from, to, tokenId);
+    }
+
+    function _safeTransfer(address from, address to, uint256 tokenId, bytes memory /*data*/) internal virtual {
+        _transfer(from, to, tokenId);
+    }
+
+    function _transfer(address from, address to, uint256 tokenId) internal virtual {
+        require(ownerOf(tokenId) == from, "ERC721: transfer from incorrect owner");
+        require(to != address(0), "ERC721: transfer to the zero address");
+
+        // Clear approvals from the previous owner
+        delete _tokenApprovals[tokenId];
+
+        unchecked {
+            _balances[from] -= 1;
+            _balances[to] += 1;
+        }
+        servers[tokenId].owner = to;
+
+        emit Transfer(from, to, tokenId);
+    }
+
+	function approve(address to, uint256 tokenId) public virtual {
+        address owner = ownerOf(tokenId);
+        require(to != owner, "ERC721: approval to current owner");
+
+        require(
+            msg.sender == owner || isApprovedForAll(owner, msg.sender),
+            "ERC721: approve caller is not token owner or approved for all"
+        );
+
+        _approve(to, tokenId);
+    }
+
+    function _approve(address to, uint256 tokenId) internal virtual {
+        _tokenApprovals[tokenId] = to;
+        emit Approval(ownerOf(tokenId), to, tokenId);
+    }
+
+	function getApproved(uint256 tokenId) public view virtual onlyExistingToken(tokenId) returns (address) {
+        return _tokenApprovals[tokenId];
+    }
+
+    function setApprovalForAll(address operator, bool approved) public virtual {
+        _setApprovalForAll(msg.sender, operator, approved);
+    }
+
+    function isApprovedForAll(address owner, address operator) public view virtual returns (bool) {
+        return _operatorApprovals[owner][operator];
+    }
+
+    function _setApprovalForAll(address owner, address operator, bool approved) internal virtual {
+        require(owner != operator, "ERC721: approve to caller");
+        _operatorApprovals[owner][operator] = approved;
+        emit ApprovalForAll(owner, operator, approved);
     }
 }
 

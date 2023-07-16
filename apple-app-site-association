@@ -1,0 +1,10 @@
+{
+  "applinks": {
+    "details": [
+    {
+      "appIDs": ["U4R9TJ5FN4.ETH.Pharms.RedRiverColony-eth"],
+      "paths": ["*"]
+    }
+    ]
+  }
+}

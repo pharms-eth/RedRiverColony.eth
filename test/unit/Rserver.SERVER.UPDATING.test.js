@@ -30,12 +30,12 @@ const tokens = (n) => {
 
               const transaction = await server
                   .connect(deployer)
-                  .register("TESTServer")
+                  .register("TESTServer", "imageURL", user2.address)
           })
 
           describe("Deployment", () => {
               it("Returns owner", async () => {
-                  const result = await server.owner()
+                  const result = await server.contractOwner()
                   expect(result).to.be.equal(deployer.address)
               })
               it("registered/minted with an id", async () => {
@@ -188,7 +188,7 @@ const tokens = (n) => {
               describe("Icon", () => {
                   it("Updates icon", async () => {
                       let instance = await server.getServer(1)
-                      expect(instance.icon).to.be.equal("")
+                      expect(instance.icon).to.be.equal("imageURL")
                       server.updateServerIcon(1, "ETH Chat")
                       let instance2 = await server.getServer(1)
                       expect(instance2.icon).to.be.equal("ETH Chat")
@@ -196,7 +196,7 @@ const tokens = (n) => {
 
                   it("requires the owner", async () => {
                       let instance = await server.connect(user2).getServer(1)
-                      expect(instance.icon).to.be.equal("")
+                      expect(instance.icon).to.be.equal("imageURL")
 
                       await expect(
                           server.connect(user2).updateServerIcon(1, "BTC Chat")
@@ -212,12 +212,12 @@ const tokens = (n) => {
                           )
 
                       let instance2 = await server.connect(user2).getServer(1)
-                      expect(instance2.icon).to.be.equal("")
+                      expect(instance2.icon).to.be.equal("imageURL")
                   })
 
                   it("requires index to be greater than 0", async () => {
                       let instance = await server.connect(deployer).getServer(1)
-                      expect(instance.icon).to.be.equal("")
+                      expect(instance.icon).to.be.equal("imageURL")
 
                       await expect(
                           server
@@ -233,12 +233,12 @@ const tokens = (n) => {
                       let instance2 = await server
                           .connect(deployer)
                           .getServer(1)
-                      expect(instance2.icon).to.be.equal("")
+                      expect(instance2.icon).to.be.equal("imageURL")
                   })
 
                   it("requires index to be less than servercount", async () => {
                       let instance = await server.connect(deployer).getServer(1)
-                      expect(instance.icon).to.be.equal("")
+                      expect(instance.icon).to.be.equal("imageURL")
 
                       let serverCount = await server.getServerCount()
 
@@ -256,12 +256,12 @@ const tokens = (n) => {
                       let instance2 = await server
                           .connect(deployer)
                           .getServer(1)
-                      expect(instance2.icon).to.be.equal("")
+                      expect(instance2.icon).to.be.equal("imageURL")
                   })
 
                   it("requires icon to not be empty", async () => {
                       let instance = await server.connect(deployer).getServer(1)
-                      expect(instance.icon).to.be.equal("")
+                      expect(instance.icon).to.be.equal("imageURL")
 
                       let serverCount = await server.getServerCount()
 
@@ -279,12 +279,12 @@ const tokens = (n) => {
                       let instance2 = await server
                           .connect(deployer)
                           .getServer(1)
-                      expect(instance2.icon).to.be.equal("")
+                      expect(instance2.icon).to.be.equal("imageURL")
                   })
 
                   it("requires emits an event", async () => {
                       let instance = await server.connect(deployer).getServer(1)
-                      expect(instance.icon).to.be.equal("")
+                      expect(instance.icon).to.be.equal("imageURL")
 
                       await expect(
                           server
@@ -529,9 +529,13 @@ const tokens = (n) => {
                           )
                               .to.be.revertedWithCustomError(
                                   server,
-                                  "RRCServer_InvalidAddressParameter"
+                                  "RRCServer_ServerNoPermission"
                               )
-                              .withArgs("userAddress")
+                              .withArgs(
+                                  serverCount,
+                                  deployer.address,
+                                  "Add User"
+                              )
 
                           let instance2 = await server
                               .connect(deployer)
@@ -702,11 +706,12 @@ const tokens = (n) => {
                           )
                               .to.be.revertedWithCustomError(
                                   server,
-                                  "RRCServer_UserNotFound"
+                                  "RRCServer_ServerNoPermission"
                               )
                               .withArgs(
                                   serverCount,
-                                  "0x0000000000000000000000000000000000000000"
+                                  deployer.address,
+                                  "Delete User"
                               )
 
                           let instance2 = await server
@@ -1200,54 +1205,301 @@ const tokens = (n) => {
                   })
               })
 
-              //======================================
-              //   https://medium.com/@danielque/solidity-unit-testing-internal-functions-4e9a728298a0
-              // function contains(
-              //     uint256[] memory array,
-              //     uint256 element
-              // ) internal pure returns (bool) {
-              //     for (uint256 i = 0; i < array.length; i++) {
-              //         if (array[i] == element) {
-              //             return true;
-              //         }
-              //     }
-              //     return false;
-              // }
+              describe("nameResolver", () => {
+                  it("Should correctly read the nameResolver of a server", async function () {
+                      let instance = await server.getServer(1)
+                      expect(instance.nameResolver).to.be.equal(user2.address)
+                  })
+                  it("Should correctly set the nameResolver when registering a server", async function () {
+                      const nameResolver = ethers.Wallet.createRandom().address
+                      const serverName = "TestServer"
+                      const serverIcon = "TestIcon"
 
-              // function contains(
-              //     address[] memory array,
-              //     address element
-              // ) internal pure returns (bool) {
-              //     for (uint256 i = 0; i < array.length; i++) {
-              //         if (array[i] == element) {
-              //             return true;
-              //         }
-              //     }
-              //     return false;
-              // }
+                      await expect(
+                          server.register(serverName, serverIcon, nameResolver)
+                      )
+                          .to.emit(server, "Transfer")
+                          .withArgs(
+                              ethers.constants.AddressZero,
+                              deployer.address,
+                              2
+                          )
+                          .to.emit(server, "MetadataUpdate")
+                          .withArgs(2)
 
-              // function getChannelIndex(
-              //     Server storage server,
-              //     uint256 channelId
-              // ) internal view returns (uint256) {
-              //     for (uint256 i = 0; i < server.channels.length; i++) {
-              //         if (server.channels[i] == channelId) {
-              //             return i;
-              //         }
-              //     }
-              //     return server.channels.length;
-              // }
+                      let instance = await server.getServer(2)
+                      expect(instance.nameResolver).to.be.equal(nameResolver)
+                  })
+                  describe("update value, function updateServerNameResolver(uint256 serverId, address nameResolver) public", function () {
+                      it("Should correctly update the nameResolver of a server", async function () {
+                          const nameResolver1 =
+                              ethers.Wallet.createRandom().address
+                          const serverName = "TestServer"
+                          const serverIcon = "TestIcon"
 
-              // function getUserIndex(
-              //     Server storage server,
-              //     address userAddress
-              // ) internal view returns (uint256) {
-              //     for (uint256 i = 0; i < server.users.length; i++) {
-              //         if (server.users[i] == userAddress) {
-              //             return i;
-              //         }
-              //     }
-              //     return server.users.length;
-              // }
+                          // Register a new server
+                          await server.register(
+                              serverName,
+                              serverIcon,
+                              nameResolver1
+                          )
+                          let instance = await server.getServer(2)
+                          expect(instance.nameResolver).to.equal(nameResolver1)
+
+                          // Update the nameResolver
+                          const nameResolver2 =
+                              ethers.Wallet.createRandom().address
+                          await expect(
+                              server.updateServerNameResolver(2, nameResolver2)
+                          )
+                              .to.emit(server, "ServerNameResolverChanged")
+                              .withArgs(2, nameResolver2)
+
+                          // Verify the updated nameResolver
+                          instance = await server.getServer(2)
+                          expect(instance.nameResolver).to.equal(nameResolver2)
+                      })
+
+                      it("Should revert if the serverId is invalid", async function () {
+                          // Attempt to update an invalid serverId
+                          await expect(
+                              server.updateServerNameResolver(
+                                  0,
+                                  ethers.Wallet.createRandom().address
+                              )
+                          ).to.be.revertedWithCustomError(
+                              server,
+                              "RRCServer_Index"
+                          )
+                          await expect(
+                              server.updateServerNameResolver(
+                                  2,
+                                  ethers.Wallet.createRandom().address
+                              )
+                          ).to.be.revertedWithCustomError(
+                              server,
+                              "RRCServer_Index"
+                          )
+                      })
+
+                      it("Should revert if the caller is not the owner of the server", async function () {
+                          // Register a new server
+                          const nameResolver1 =
+                              ethers.Wallet.createRandom().address
+                          const serverName = "TestServer"
+                          const serverIcon = "TestIcon"
+                          await server.register(
+                              serverName,
+                              serverIcon,
+                              nameResolver1
+                          )
+
+                          await expect(
+                              server
+                                  .connect(user2)
+                                  .updateServerNameResolver(
+                                      1,
+                                      ethers.Wallet.createRandom().address
+                                  )
+                          ).to.be.revertedWithCustomError(
+                              server,
+                              "RRCServer_ServerNoPermission"
+                          )
+                      })
+                  })
+                  describe("delete value, function updateServerNameResolver(uint256 serverId, address nameResolver) public", function () {
+                      it("Should correctly update the nameResolver of a server", async function () {
+                          const nameResolver1 =
+                              "0x0000000000000000000000000000000000000000"
+
+                          const serverName = "TestServer"
+                          const serverIcon = "TestIcon"
+
+                          // Register a new server
+                          await server.register(
+                              serverName,
+                              serverIcon,
+                              nameResolver1
+                          )
+                          let instance = await server.getServer(2)
+                          expect(instance.nameResolver).to.equal(nameResolver1)
+
+                          // Update the nameResolver
+                          const nameResolver2 =
+                              ethers.Wallet.createRandom().address
+                          await expect(
+                              server.updateServerNameResolver(2, nameResolver2)
+                          )
+                              .to.emit(server, "ServerNameResolverChanged")
+                              .withArgs(2, nameResolver2)
+
+                          // Verify the updated nameResolver
+                          instance = await server.getServer(2)
+                          expect(instance.nameResolver).to.equal(nameResolver2)
+                      })
+
+                      it("Should revert if the serverId is invalid", async function () {
+                          // Attempt to update an invalid serverId
+                          await expect(
+                              server.updateServerNameResolver(
+                                  0,
+                                  ethers.Wallet.createRandom().address
+                              )
+                          ).to.be.revertedWithCustomError(
+                              server,
+                              "RRCServer_Index"
+                          )
+                          await expect(
+                              server.updateServerNameResolver(
+                                  2,
+                                  ethers.Wallet.createRandom().address
+                              )
+                          ).to.be.revertedWithCustomError(
+                              server,
+                              "RRCServer_Index"
+                          )
+                      })
+
+                      it("Should revert if the caller is not the owner of the server", async function () {
+                          // Register a new server
+                          const nameResolver1 =
+                              "0x0000000000000000000000000000000000000000"
+                          const serverName = "TestServer"
+                          const serverIcon = "TestIcon"
+                          await server.register(
+                              serverName,
+                              serverIcon,
+                              nameResolver1
+                          )
+
+                          await expect(
+                              server
+                                  .connect(user2)
+                                  .updateServerNameResolver(
+                                      1,
+                                      ethers.Wallet.createRandom().address
+                                  )
+                          ).to.be.revertedWithCustomError(
+                              server,
+                              "RRCServer_ServerNoPermission"
+                          )
+                      })
+                  })
+              })
+          })
+
+          describe("muteUser", function () {
+              it("Should mute the user if the caller is the server owner", async function () {
+                  await server.muteUser(1, user2.address)
+                  expect(await server.isUserMuted(1, user2.address)).to.be.true
+              })
+
+              it("Should revert if the caller is not the server owner", async function () {
+                  await expect(
+                      server.connect(user2).muteUser(1, user3.address)
+                  ).to.be.revertedWithCustomError(
+                      server,
+                      "RRCServer_ServerNoPermission"
+                  )
+              })
+
+              it("Should mute the user if the caller is the server owner and emit UserMutedOnServer event", async function () {
+                  await expect(server.muteUser(1, user2.address))
+                      .to.emit(server, "UserMutedOnServer")
+                      .withArgs(1, user2.address)
+                  expect(await server.isUserMuted(1, user2.address)).to.be.true
+              })
+          })
+
+          describe("banUser and unbanUser", function () {
+              it("Should ban the user if the caller is the server owner and emit UserBannedOnServer event", async function () {
+                  await expect(server.banUser(1, user2.address))
+                      .to.emit(server, "UserBannedOnServer")
+                      .withArgs(1, user2.address)
+                  expect(await server.isUserBanned(1, user2.address)).to.be.true
+              })
+
+              it("Should unban the user if the caller is the server owner and emit UserUnbannedOnServer event", async function () {
+                  await server.banUser(1, user2.address)
+                  await expect(server.unbanUser(1, user2.address))
+                      .to.emit(server, "UserUnbannedOnServer")
+                      .withArgs(1, user2.address)
+                  expect(await server.isUserBanned(1, user2.address)).to.be
+                      .false
+              })
+
+              it("Should revert if the caller is not the server owner when trying to ban a user", async function () {
+                  await expect(
+                      server.connect(user2).banUser(1, user3.address)
+                  ).to.be.revertedWithCustomError(
+                      server,
+                      "RRCServer_ServerNoPermission"
+                  )
+              })
+
+              it("Should revert if the caller is not the server owner when trying to unban a user", async function () {
+                  await server.banUser(1, user2.address)
+                  await expect(
+                      server.connect(user2).unbanUser(1, user2.address)
+                  ).to.be.revertedWithCustomError(
+                      server,
+                      "RRCServer_ServerNoPermission"
+                  )
+              })
+          })
+
+          describe("UserRole functionality", function () {
+              //   it("Should allow setting a user's role by an admin", async function () {
+              //       // Register a new server as admin
+              //       await server.register(
+              //           "TestServer",
+              //           "TestIcon",
+              //           deployer.address
+              //       )
+              //       // Set the user's role as a member
+              //       await server.setUserRole(1, user2.address, 1)
+              //       // Verify the role change
+              //       const userRole = await server.getUserRole(1, user2.address)
+              //       expect(userRole).to.equal(1)
+              //   })
+              //   it("Should not allow non-admin to set a user's role", async function () {
+              //       // Register a new server as admin
+              //       await server.register(
+              //           "TestServer",
+              //           "TestIcon",
+              //           deployer.address
+              //       )
+              //       // Attempt to set a user's role as a non-admin user
+              //       await expect(
+              //           server.connect(user2).setUserRole(1, user3.address, 1)
+              //       ).to.be.revertedWith("RRCServer_ServerNoPermission")
+              //   })
+              //   it("Should allow removing a user's role by an admin", async function () {
+              //       // Register a new server as admin
+              //       await server.register(
+              //           "TestServer",
+              //           "TestIcon",
+              //           deployer.address
+              //       )
+              //       // Set the user's role as a member
+              //       await server.setUserRole(1, user2.address, 1)
+              //       // Remove the user's role
+              //       await server.removeUserRole(1, user2.address)
+              //       // Verify the role removal
+              //       const userRole = await server.getUserRole(1, user2.address)
+              //       expect(userRole).to.equal(0)
+              //   })
+              //   it("Should not allow non-admin to remove a user's role", async function () {
+              //       // Register a new server as admin
+              //       await server.register(
+              //           "TestServer",
+              //           "TestIcon",
+              //           deployer.address
+              //       )
+              //       // Attempt to remove a user's role as a non-admin user
+              //       await expect(
+              //           server.connect(user2).removeUserRole(1, user3.address)
+              //       ).to.be.revertedWith("RRCServer_ServerNoPermission")
+              //   })
           })
       })

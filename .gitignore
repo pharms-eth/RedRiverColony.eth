@@ -9,3 +9,6 @@ typechain-types
 cache
 artifacts
 
+iOS/RedRiverColony.eth/RedRiverColony.eth.xcodeproj/project.xcworkspace/*
+iOS/RedRiverColony.eth/RedRiverColony.eth.xcodeproj/xcuserdata/*
+.DS_Store
