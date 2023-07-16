@@ -14,7 +14,6 @@
 		6F9F4B6F29EB336C0035922A /* RedRiverColony_ethTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F9F4B6E29EB336C0035922A /* RedRiverColony_ethTests.swift */; };
 		6F9F4B7929EB336C0035922A /* RedRiverColony_ethUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F9F4B7829EB336C0035922A /* RedRiverColony_ethUITests.swift */; };
 		6F9F4B7B29EB336C0035922A /* RedRiverColony_ethUITestsLaunchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F9F4B7A29EB336C0035922A /* RedRiverColony_ethUITestsLaunchTests.swift */; };
-		6F9F4B8A29EB84270035922A /* web3swift in Frameworks */ = {isa = PBXBuildFile; productRef = 6F9F4B8929EB84270035922A /* web3swift */; };
 		6F9F4B9029EB85280035922A /* metamask-ios-sdk in Frameworks */ = {isa = PBXBuildFile; productRef = 6F9F4B8F29EB85280035922A /* metamask-ios-sdk */; };
 		6F9F4BA129EB86D50035922A /* ConnectWalletSheetView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F9F4B9C29EB86D50035922A /* ConnectWalletSheetView.swift */; };
 		6F9F4BA229EB86D50035922A /* Wallet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F9F4B9D29EB86D50035922A /* Wallet.swift */; };
@@ -33,6 +32,7 @@
 		6F9F4BBD29EB878D0035922A /* WalletLinkedViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F9F4BBA29EB878D0035922A /* WalletLinkedViewModel.swift */; };
 		6F9F4BC029EB8AB00035922A /* SIWEMessage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F9F4BBF29EB8AB00035922A /* SIWEMessage.swift */; };
 		6F9F4BC429F048320035922A /* ExSoul.Eth in Frameworks */ = {isa = PBXBuildFile; productRef = 6F9F4BC329F048320035922A /* ExSoul.Eth */; };
+		6FC49FE629F76037002576F4 /* ENSProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6FC49FE529F76036002576F4 /* ENSProfileView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -81,6 +81,8 @@
 		6F9F4BBA29EB878D0035922A /* WalletLinkedViewModel.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = WalletLinkedViewModel.swift; sourceTree = "<group>"; };
 		6F9F4BBF29EB8AB00035922A /* SIWEMessage.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SIWEMessage.swift; sourceTree = "<group>"; };
 		6F9F4BC129EC7A300035922A /* RedRiverColony.eth.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = RedRiverColony.eth.entitlements; sourceTree = "<group>"; };
+		6FC49FE429F22301002576F4 /* web3swift */ = {isa = PBXFileReference; lastKnownFileType = wrapper; name = web3swift; path = ../../../web3swift; sourceTree = "<group>"; };
+		6FC49FE529F76036002576F4 /* ENSProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ENSProfileView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -90,7 +92,6 @@
 			files = (
 				6F4FBCCD29F050E1005AF394 /* CoinbaseWalletSDK in Frameworks */,
 				6F9F4BC429F048320035922A /* ExSoul.Eth in Frameworks */,
-				6F9F4B8A29EB84270035922A /* web3swift in Frameworks */,
 				6F9F4B9029EB85280035922A /* metamask-ios-sdk in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -115,6 +116,7 @@
 		6F9F4B5129EB336B0035922A = {
 			isa = PBXGroup;
 			children = (
+				6FC49FE429F22301002576F4 /* web3swift */,
 				6F4FBCCB29F050A0005AF394 /* wallet-mobile-sdk-master 2 */,
 				6F9F4B8729EB33900035922A /* ExSoul-Pkg.Eth */,
 				6F9F4B5C29EB336B0035922A /* RedRiverColony.eth */,
@@ -140,6 +142,7 @@
 			children = (
 				6F9F4BC129EC7A300035922A /* RedRiverColony.eth.entitlements */,
 				6F9F4B5D29EB336B0035922A /* RedRiverColony_ethApp.swift */,
+				6FC49FE529F76036002576F4 /* ENSProfileView.swift */,
 				6F9F4BAA29EB87400035922A /* Color.swift */,
 				6F9F4BBE29EB8AA40035922A /* SIWE */,
 				6F9F4BB729EB875D0035922A /* SIWEButton */,
@@ -243,7 +246,6 @@
 			);
 			name = RedRiverColony.eth;
 			packageProductDependencies = (
-				6F9F4B8929EB84270035922A /* web3swift */,
 				6F9F4B8F29EB85280035922A /* metamask-ios-sdk */,
 				6F9F4BC329F048320035922A /* ExSoul.Eth */,
 				6F4FBCCC29F050E1005AF394 /* CoinbaseWalletSDK */,
@@ -321,7 +323,6 @@
 			);
 			mainGroup = 6F9F4B5129EB336B0035922A;
 			packageReferences = (
-				6F9F4B8829EB84270035922A /* XCRemoteSwiftPackageReference "web3swift" */,
 				6F9F4B8E29EB85280035922A /* XCRemoteSwiftPackageReference "metamask-ios-sdk" */,
 			);
 			productRefGroup = 6F9F4B5B29EB336B0035922A /* Products */;
@@ -377,6 +378,7 @@
 				6F9F4BC029EB8AB00035922A /* SIWEMessage.swift in Sources */,
 				6F9F4BBD29EB878D0035922A /* WalletLinkedViewModel.swift in Sources */,
 				6F9F4BB129EB87400035922A /* MessageView.swift in Sources */,
+				6FC49FE629F76037002576F4 /* ENSProfileView.swift in Sources */,
 				6F9F4BB529EB87400035922A /* ArtisticSpinner.swift in Sources */,
 				6F9F4BB029EB87400035922A /* DAppScreen.swift in Sources */,
 				6F9F4BA529EB86D50035922A /* ConnectWalletButton.swift in Sources */,
@@ -711,14 +713,6 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
-		6F9F4B8829EB84270035922A /* XCRemoteSwiftPackageReference "web3swift" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/web3swift-team/web3swift";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 3.0.0;
-			};
-		};
 		6F9F4B8E29EB85280035922A /* XCRemoteSwiftPackageReference "metamask-ios-sdk" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/MetaMask/metamask-ios-sdk";
@@ -733,11 +727,6 @@
 		6F4FBCCC29F050E1005AF394 /* CoinbaseWalletSDK */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = CoinbaseWalletSDK;
-		};
-		6F9F4B8929EB84270035922A /* web3swift */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 6F9F4B8829EB84270035922A /* XCRemoteSwiftPackageReference "web3swift" */;
-			productName = web3swift;
 		};
 		6F9F4B8F29EB85280035922A /* metamask-ios-sdk */ = {
 			isa = XCSwiftPackageProductDependency;
