@@ -134,8 +134,8 @@ const tokens = (n) => {
                   // Assume that owner has tokenId 1 and approves addr1
                   await server.connect(deployer).approve(user2.address, 1)
                   await server.connect(deployer).burn(1)
-                  expect(await server.getApproved(1)).to.equal(
-                      ethers.constants.AddressZero
+                  await expect(server.getApproved(1)).to.be.revertedWith(
+                      "ERC721: operator query for nonexistent token"
                   )
               })
 
@@ -233,9 +233,6 @@ const tokens = (n) => {
 
                       it("Should emit an Approval event", async () => {
                           // Assume that owner has tokenId 1
-                          console.log(user2.address)
-                          console.log(user3.address)
-                          console.log(deployer.address)
                           await expect(
                               server
                                   .connect(deployer)
@@ -314,6 +311,104 @@ const tokens = (n) => {
                                   )
                           ).to.equal(false)
                       })
+                  })
+              })
+
+              describe("safeTransferFrom and transferFrom", function () {
+                  it("Should transfer the token correctly", async function () {
+                      await server["safeTransferFrom(address,address,uint256)"](
+                          deployer.address,
+                          user2.address,
+                          1
+                      )
+
+                      expect(await server.ownerOf(1)).to.equal(user2.address)
+                  })
+
+                  it("Should fail if the caller is not the owner or approved", async function () {
+                      await expect(
+                          server
+                              .connect(user2)
+                              ["safeTransferFrom(address,address,uint256)"](
+                                  deployer.address,
+                                  user2.address,
+                                  1
+                              )
+                      ).to.be.revertedWith(
+                          "ERC721: caller is not token owner or approved"
+                      )
+                  })
+
+                  it("Should fail if transferring from incorrect owner", async function () {
+                      await expect(
+                          server
+                              .connect(deployer)
+                              ["safeTransferFrom(address,address,uint256)"](
+                                  user2.address,
+                                  user3.address,
+                                  1
+                              )
+                      ).to.be.revertedWith(
+                          "ERC721: transfer from incorrect owner"
+                      )
+                  })
+
+                  it("Should fail if transferring to the zero address", async function () {
+                      await expect(
+                          server
+                              .connect(deployer)
+                              ["safeTransferFrom(address,address,uint256)"](
+                                  deployer.address,
+                                  ethers.constants.AddressZero,
+                                  1
+                              )
+                      ).to.be.revertedWith(
+                          "ERC721: transfer to the zero address"
+                      )
+                  })
+
+                  it("Should emit a Transfer event", async function () {
+                      await expect(
+                          server
+                              .connect(deployer)
+                              ["safeTransferFrom(address,address,uint256)"](
+                                  deployer.address,
+                                  user2.address,
+                                  1
+                              )
+                      )
+                          .to.emit(server, "Transfer")
+                          .withArgs(deployer.address, user2.address, 1)
+                  })
+
+                  it("Should clear approvals", async function () {
+                      // Assume that owner approves addr1 for tokenId 1
+                      await server.connect(deployer).approve(user2.address, 1)
+                      await server
+                          .connect(deployer)
+                          ["safeTransferFrom(address,address,uint256)"](
+                              deployer.address,
+                              user3.address,
+                              1
+                          )
+
+                      expect(await server.getApproved(1)).to.equal(
+                          ethers.constants.AddressZero
+                      )
+                  })
+
+                  it("Should update the balances correctly", async function () {
+                      await server
+                          .connect(deployer)
+                          ["safeTransferFrom(address,address,uint256)"](
+                              deployer.address,
+                              user2.address,
+                              1
+                          )
+                      expect(await server.balanceOf(deployer.address)).to.equal(
+                          0
+                      )
+                      expect(await server.balanceOf(user2.address)).to.equal(1)
                   })
               })
           })
