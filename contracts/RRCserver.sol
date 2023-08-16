@@ -616,26 +616,35 @@ error RRCServer_ChannelNotFound(uint256 channelId);
 //24843
 contract RServer is ERC165, IERC721Metadata, Ownable, AccessControl {
     /*
-    THIS CONTRACT WILL HOST ALL THE SERVERS, INSIDE THE SERVERS THERE SHOULD BE CHANNELS WHICH INSIDE HAVE MESSAGES. MESSAGES SHOULDNT PERTAIN ON CHAIN 
+    PENDING
 
-    CREATE THE MINTING OF EACH OF THESE ELEMENTS INSIDE THIS SMART CONTRACT BUT THEN WE CAN DSIITRIBUTE & DECENTRALIZE IN THE FUTURE.
+    add more setters for all the channel and server properties
 
-    MAKE A LIST OF ALL THE POSSIBLE CHARACTERISTICS OF A SERVER, CHANNEL, MESSAGE, USER
+    allow users to reactivate a channel or server after deactivating
 
-    CREATE ACCESS ROLES FOR SMART CONTRACT BUT ALSO FOR USERS TO ACCESS CHANNELS AND SERVERS. ADD ONLY ROLE TO ADMIN FUNCTIONS
+    channel handling to server and user handling to channel
 
-    FIND A WAY WE CAN CONNECT USERS TO OTHER USERS
+    getter function to get a list of all servers and channels a user is part of (some channels might remain after user deletion from server). getter function to get a list of
+    all users inside a channel. Should the same be implemented for servers ?
 
-    QUERY LIST OF SERVERS AND CHANNELS FROM USER
+    */
 
-    CREATE DIFFERENT IPFS URL DEPENDING ON THE TYPE. STORE TOKEN ID TO TYPE OF NFT
+    /*
+    EXTRA FEATURES/FUNCTIONALITY TO CONSIDER
 
-    ALLOW TRANSFER OF OWNERSHIP done
+    possibly include a function to query all servers/channels in one list object instead of going through mapping
 
-    BLOCK TRANSFER OF NFTS AND APPROVALS
+    deactivating all channels once a server is deactivated
 
-    ADD EXTERNAL FUNCTIONS FOR ADMIN TO GET SERVER AND CHANNEL INFORMATION
+    add new properties to server and channel along with the setter functions and events
 
+    chanege the name of transfer event to server created event when its the first time
+
+    allow users to accept the transfership of a channel or server instead of simply receiving the nft
+
+    connecting users to other users. follow feature.
+
+    allow the user to join public servers, no need to be added by admin
     */
 
     uint256 internal constant SERVER = 1;
@@ -646,14 +655,16 @@ contract RServer is ERC165, IERC721Metadata, Ownable, AccessControl {
         uint256 id;
         address owner;
         string name;
+        address nameResolver;
         bool isActive;
         bool isPublic;
         uint256[] channelIds;
         address[] users;
         //bytes32 role; add admin roles so user can create new channels, add new people, remove people, mute and unmute people
+        uint256 generalChannelId;
     }
     mapping(uint256 => Server) public servers;
-    uint256 public lastServerId;
+    uint256 public serverCount;
 
     struct Channel {
         uint256 id;
@@ -666,7 +677,7 @@ contract RServer is ERC165, IERC721Metadata, Ownable, AccessControl {
         //bytes32 role; add admin roles per channel for users to be able to add or revoke access, mute and unmute people
     }
     mapping(uint256 => Channel) public channels;
-    uint256 public lastChannelId;
+    uint256 public channelCount;
 
 
     struct User {
@@ -674,23 +685,22 @@ contract RServer is ERC165, IERC721Metadata, Ownable, AccessControl {
         uint256[] serverIds;
         uint256[] channelIds;
     }
+    mapping(address => mapping(uint256 => bool)) public userToChannel;
+    mapping(uint256 => mapping(address => bool)) public bannedUsers;
+    mapping(uint256 => mapping(address => bool)) public mutedUsers;
 
     string internal _name;
     string internal _symbol;
     string internal currentBaseURI;
 
-
-    mapping(uint256 => mapping(address => bool)) bannedUsers;
-    mapping(uint256 => mapping(address => bool)) mutedUsers;
-    //mapping(uint256 => mapping(address => UserRole)) userRoles;
     mapping(address => uint256) private _balances;
     mapping(uint256 => address) private _tokenApprovals;
     mapping(address => mapping(address => bool)) private _operatorApprovals;
 
     event ServerNameChanged(uint256 indexed serverId, string newName);
     event ServerNameResolverChanged(uint256 indexed serverId, address newName);
-    event ServerIconChanged(uint256 indexed serverId, string newIcon);
-    event ServermessageChanged(uint256 indexed serverId, string newMessage);
+    //event ServerIconChanged(uint256 indexed serverId, string newIcon);
+    //event ServermessageChanged(uint256 indexed serverId, string newMessage);
     event UserDeletedFromServer(uint256 indexed serverId,address indexed userAddress);
     event MetadataUpdate(uint256 _tokenId);
     event ChannelDeletedFromServer(uint256 indexed serverId,uint256 indexed channelId);
@@ -725,6 +735,14 @@ contract RServer is ERC165, IERC721Metadata, Ownable, AccessControl {
         require(
             _exists(tokenId),
             "ERC721: operator query for nonexistent token"
+        );
+        _;
+    }
+
+    modifier onlyActive(uint256 tokenId) {
+        require(
+            idToType[tokenId] == SERVER ? servers[tokenId].isActive : channels[tokenId].isActive,
+            "Inactive Token"
         );
         _;
     }
@@ -779,36 +797,48 @@ contract RServer is ERC165, IERC721Metadata, Ownable, AccessControl {
         _;
     }
 
+    modifier inServer(address _address, uint256 id) {
+        uint256 generalChannelId = servers[serverId].generalChannelId;
+        require(userToChannel[userAddress][generalChannelId], "Not in server");
+        _;
+    }
+
     ///
     /// SERVERS
     ///
 
+    /// CREATING & DELETING
+
     function createServer(string memory serverName, bool isPublic) external {
-        lastServerId++;
-        servers[totalSupply()] = Server(
-            totalSupply(),
+        serverCount++;
+        uint256 serverId = totalSupply();
+        servers[serverId] = Server(
+            serverId,
             msg.sender,
             serverName,
             true,
             isPublic,
             new uint256[](0),
-            new address[](0)
+            new address[](0),
+            0
         );
 
         unchecked {
             _balances[msg.sender] += 1;
         }
 
-        emit Transfer(address(0), msg.sender, totalSupply());
+        emit Transfer(address(0), msg.sender, serverId);
 
-        _createChannel(totalSupply(), "general", true);
-        
+        uint256 channelId = _createChannel(totalSupply(), "general", true);
+        servers[serverId].generalChannelId = channelId;
     }
 
     //Do we really need to burn the token or should we just deactivate it
     function deleteServer(uint256 id) external onlyExistingToken(id) onlyOwnerOf(id, "BURN") {
+        require(servers[id].isActive, "Server is already deactivated");
         servers[id].isActive = false;
 
+        /*
         unchecked {
             _balances[msg.sender] -= 1;
         }
@@ -816,9 +846,14 @@ contract RServer is ERC165, IERC721Metadata, Ownable, AccessControl {
         delete _tokenApprovals[id];
 
         emit Transfer(msg.sender, address(0), id);
+        */
+
+
     }
 
-    function setServerAdmin(address admin, uint256 id, bool grant) external onlyOwnerOf(id) {
+    /// EDITING PROPERTIES
+
+    function setServerAdmin(address admin, uint256 id, bool grant) external onlyOwnerOf(id) isAddressZero(admin) {
         if (grant) {
             grantRole(keccak256(string(abi.encodePacked("ADMIN_ROLE_SERVER", id))), admin);
         }
@@ -827,169 +862,7 @@ contract RServer is ERC165, IERC721Metadata, Ownable, AccessControl {
         }
     }
 
-    ///
-    /// CHANNELS
-    ///
-
-    function createChannel(uint256 serverId, string memory channelName, bool isPublic) external onlyServerAdminOf(serverId) {
-        _createChannel(serverId, channelName, isPublic);
-    }
-
-    function _createChannel(uint256 serverId, string memory channelName, bool isPublic) internal {
-        lastChannelId++;
-        channels[totalSupply()] = Server(
-            totalSupply(),
-            msg.sender,
-            channelName,
-            true,
-            isPublic,
-            new address[msg.sender](1)
-        );
-
-        unchecked {
-            _balances[msg.sender] += 1;
-        }
-
-        emit Transfer(address(0), msg.sender, totalSupply());
-
-    }
-
-    //Do we really need to burn the token or should we just deactivate it
-    function deleteChannnel(uint256 id) external onlyExistingToken(id) onlyOwnerOf(id, "BURN") {
-        channels[id].isActive = false;
-
-        unchecked {
-            _balances[msg.sender] -= 1;
-        }
-
-        delete _tokenApprovals[id];
-
-        emit Transfer(msg.sender, address(0), id);
-    }
-
-    function setChannelAdmin(address admin, uint256 id, bool grant) external onlyOwnerOf(id) {
-        if (grant) {
-            grantRole(keccak256(string(abi.encodePacked("ADMIN_ROLE_CHANNEL", id))), admin);
-        }
-        else {
-            revokeRole(keccak256(string(abi.encodePacked("ADMIN_ROLE_CHANNEL", id))), admin);
-        }
-    }
-
-    ///
-    /// VIEWS
-    ///
-
-    function name() public view virtual returns (string memory) {
-        return _name;
-    }
-
-    function symbol() public view virtual returns (string memory) {
-        return _symbol;
-    }
-
-    function tokenURI(uint256 tokenId) public view virtual onlyExistingToken(tokenId) returns (string memory) {
-        string memory baseURI = _baseURI();
-        return bytes(baseURI).length != 0 ? string(abi.encodePacked(baseURI, idToType[tokenId].toString())) : '';
-    }
-    
-
-    function _baseURI() internal view virtual returns (string memory) {
-        return currentBaseURI;
-    }
-
-    function balanceOf(address owner) public view virtual isAddressZero(owner) returns (uint256) {
-        return _balances[owner];
-    }
-
-    function ownerOf(uint256 tokenId) public view virtual returns (address) {
-        address ownerOF = _ownerOf(tokenId);
-        require(ownerOF != address(0), "ERC721: address zero is not a valid owner");
-        return ownerOF;
-    }
-
-    function _ownerOf(uint256 tokenId) internal view virtual returns (address) {
-        return servers[tokenId].owner;
-    }
-
-    function _exists(uint256 tokenId) internal view virtual returns (bool) {
-        return _ownerOf(tokenId) != address(0);
-    }
-
-    //possibly include a function to query all in one list object instead of going through mapping
-    /*function getServer(uint256 serverId) public view onlyExistingToken(serverId) returns (Server memory) {
-        return servers[serverId];
-    }*/
-
-    /// 
-    /// ADMIN
-    ///
-
-    function setAdmin(address admin, uint256 id, bool grant) external onlyOwner {
-        if (grant) {
-            grantRole(keccak256(string(abi.encodePacked("ADMIN_ROLE", id))), admin);
-        }
-        else {
-            revokeRole(keccak256(string(abi.encodePacked("ADMIN_ROLE", id))), admin);
-        }
-    }
-
-    /**
-     * Sets base URI.
-     * @param newBaseURI The base URI
-     */
-    function setBaseURI(string memory newBaseURI) external onlyOwner {
-        currentBaseURI = newBaseURI;
-    }
-
-    ///
-    /// MISC
-    ///
-
-    function withdraw(uint256 amount, address recipient) public onlyOwner {
-        (bool success, ) = payable(recipient).call{value: amount}("");
-        require(success);
-    }
-
-    function banUser(uint256 _serverId, address _user) public tokenInRange(_serverId) onlyOwnerOf(_serverId, "Update Name") {
-        bannedUsers[_serverId][_user] = true;
-        emit UserBannedOnServer(_serverId, _user);
-    }
-
-    function unbanUser(uint256 _serverId, address _user) public tokenInRange(_serverId) onlyOwnerOf(_serverId, "Update Name") {
-        bannedUsers[_serverId][_user] = false;
-        emit UserUnbannedOnServer(_serverId, _user);
-    }
-
-    function isUserBanned(
-        uint256 _serverId,
-        address _user
-    ) public view tokenInRange(_serverId) onlyOwnerOf(_serverId, "Update Name") returns (bool) {
-        return bannedUsers[_serverId][_user];
-    }
-
-    function muteUser(uint256 _serverId, address _user) public tokenInRange(_serverId) onlyOwnerOf(_serverId, "Update Name") {
-        mutedUsers[_serverId][_user] = true;
-        emit UserMutedOnServer(_serverId, _user);
-    }
-
-    function unmuteUser(uint256 _serverId, address _user) public tokenInRange(_serverId) onlyOwnerOf(_serverId, "Update Name") {
-        mutedUsers[_serverId][_user] = false;
-        emit UserMutedOnServer(_serverId, _user);
-    }
-
-    function isUserMuted(
-        uint256 _serverId,
-        address _user
-    ) public view tokenInRange(_serverId) onlyOwnerOf(_serverId, "Update Name") returns (bool) {
-        return mutedUsers[_serverId][_user];
-    }
-
-    /*function getUserRole(uint256 _serverId, address _user) public view tokenInRange(_serverId) returns (UserRole) {
-        return userRoles[_serverId][_user];
-    }*/
-
-    function updateServerName(uint256 serverId, string memory newName) public tokenInRange(serverId) onlyOwnerOf(serverId, "Update Name") validateString(newName, "name") {
+    function setServerName(uint256 serverId, string memory newName) external onlyExistingToken(serverId) onlyActive(serverId) onlyOwnerOf(serverId, "SET SERVER NAME") validateString(newName, "name") {
         if (bytes(newName).length > 256) {
             revert RRCServer_InvalidStringParameter("name", newName);
         }
@@ -999,6 +872,13 @@ contract RServer is ERC165, IERC721Metadata, Ownable, AccessControl {
         emit ServerNameChanged(serverId, newName);
     }
 
+    function setServerNameResolver(uint256 serverId, address nameResolver) external onlyExistingToken(serverId) onlyActive(serverId) onlyOwnerOf(serverId, "SET SERVER NAME RESOLVER") {
+        servers[serverId].nameResolver = nameResolver;
+
+        emit ServerNameResolverChanged(serverId, nameResolver);
+    }
+
+    /*
     function updateServerIcon(uint256 serverId, string memory newIcon) public tokenInRange(serverId) onlyOwnerOf(serverId, "Update Icon") validateString(newIcon, "icon") {
         servers[serverId].icon = newIcon;
         emit ServerIconChanged(serverId, newIcon);
@@ -1011,45 +891,9 @@ contract RServer is ERC165, IERC721Metadata, Ownable, AccessControl {
         servers[serverId].message = newMessage;
 
         emit ServermessageChanged(serverId, newMessage);
-    }
+    }*/
 
-    function updateServerNameResolver(uint256 serverId, address nameResolver) public tokenInRange(serverId) onlyOwnerOf(serverId, "Update Name") {
-        servers[serverId].nameResolver = nameResolver;
-
-        emit ServerNameResolverChanged(serverId, nameResolver);
-    }
-
-    function addUserToServer(uint256 serverId, address userAddress) public tokenInRange(serverId) onlyOwnerOf(serverId, "Add User") isAddressZero(userAddress) {
-        if (contains(servers[serverId].users, userAddress)) {
-            revert RRCServer_UserAlreadyExists(serverId, userAddress);
-        }
-
-        servers[serverId].users.push(userAddress);
-
-        emit UserAddedToServer(serverId, userAddress);
-    }
-
-    function deleteUserFromServer(
-        uint256 serverId,
-        address userAddress
-    ) public tokenInRange(serverId) onlyOwnerOf(serverId, "Delete User") isAddressZero(userAddress) {
-        Server storage server = servers[serverId];
-        uint256 userIndex = getUserIndex(server, userAddress);
-        if (userIndex >= server.users.length) {
-            revert RRCServer_UserNotFound(serverId, userAddress);
-        }
-
-        // Swap the user to be deleted with the last user in the array
-        if (userIndex < server.users.length - 1) {
-            server.users[userIndex] = server.users[server.users.length - 1];
-        }
-
-        // Remove the last user from the array
-        server.users.pop();
-
-        // Emit an event to indicate that a user was deleted from the server
-        emit UserDeletedFromServer(serverId, userAddress);
-    }
+    /// CHANNEL HANDLING
 
     function addChannelToServer(uint256 serverId, uint256 channelId) public tokenInRange(serverId) onlyOwnerOf(serverId, "Add to channels") {
         if (channelId == 0) {
@@ -1087,6 +931,249 @@ contract RServer is ERC165, IERC721Metadata, Ownable, AccessControl {
         // Emit an event to indicate that a channel was deleted from the server
         emit ChannelDeletedFromServer(serverId, channelId);
     }
+    
+
+    /// USER HANDLING
+
+    function addUserToServer(uint256 serverId, address userAddress) external onlyExistingToken(serverId) onlyActive(serverId) onlyServerAdminOf(serverId) isAddressZero(userAddress) {
+        require(!bannedUsers[serverId][_user], "User is banned");
+
+        /*if (contains(servers[serverId].users, userAddress)) {
+            revert RRCServer_UserAlreadyExists(serverId, userAddress);
+        }*/
+        uint256 generalChannelId = servers[serverId].generalChannelId;
+        require(!userToChannel[userAddress][generalChannelId], "Already in server");
+
+        userToChannel[userAddress][servers[serverId].generalChannelId] = true;
+        users[userAddress].serverIds.push(serverId);
+        servers[serverId].users.push(userAddress);
+        //channels[generalChannelId].users.push(userAddress); is this really necessary as all users that are in the server have access to this chat
+        
+
+        emit UserAddedToServer(serverId, userAddress);
+    }
+
+    function deleteUserFromServer(uint256 serverId, address userAddress) external onlyExistingToken(serverId) onlyActive(serverId) onlyServerAdminOf(serverId) isAddressZero(userAddress) inServer(userAddress) {
+        _deleteUserFromServer(serverId, userAddress);
+    }
+
+    function _deleteUserFromServer(uint256 serverId, address userAddress) internal {
+        User storage user = users[userAddress];
+        Server storage server = servers[serverId];
+
+        userToChannel[userAddress][server.generalChannelId] = false;
+        
+        uint256 serverIndex = getServerIndex(server, userAddress);
+        // Swap the user to be deleted with the last user in the array
+        if (serverIndex < user.serverIds.length - 1) {
+            user.serverIds[userIndex] = user.serverIds[user.serverIds.length - 1];
+        }
+        // Remove the last user from the array
+        users.serverIds.pop();
+
+        uint256 userIndex = getUserIndex(server, userAddress);
+        // Swap the user to be deleted with the last user in the array
+        if (userIndex < server.users.length - 1) {
+            server.users[userIndex] = server.users[server.users.length - 1];
+        }
+        // Remove the last user from the array
+        server.users.pop();
+
+        // Emit an event to indicate that a user was deleted from the server
+        emit UserDeletedFromServer(serverId, userAddress);
+    }
+
+
+    //add require statements that they are part of that server
+    function banUser(uint256 serverId, address _user) external onlyExistingToken(serverId) onlyActive(serverId) onlyOwnerOf(serverId, "BAN USER") inServer(_user, serverId) isAddressZero(_user) {
+        require(!bannedUsers[serverId][_user], "User is already banned");
+        
+        bannedUsers[serverId][_user] = true;
+        emit UserBannedOnServer(serverId, _user);
+
+        _deleteUserFromServer(serverId, _user);
+    }
+
+    function unbanUser(uint256 serverId, address _user) external onlyExistingToken(serverId) onlyActive(serverId) onlyOwnerOf(serverId, "UNBAN USER") inServer(_user, serverId) isAddressZero(_user) {
+        require(bannedUsers[serverId][_user], "User is not banned");
+        
+        bannedUsers[_serverId][_user] = false;
+        emit UserUnbannedOnServer(_serverId, _user);
+    }
+
+    function muteUser(uint256 serverId, address _user) external onlyExistingToken(serverId) onlyActive(serverId) onlyOwnerOf(serverId, "MUTE USER") inServer(_user, serverId) isAddressZero(_user) {
+        require(!mutedUsers[serverId][_user], "User is already muted");
+        
+        mutedUsers[serverId][_user] = true;
+        emit UserMutedOnServer(serverId, _user);
+    }
+
+    function unmuteUser(uint256 serverId, address _user) external onlyExistingToken(serverId) onlyActive(serverId) onlyOwnerOf(serverId, "UNMUTE USER") inServer(_user, serverId) isAddressZero(_user) {
+        require(mutedUsers[serverId][_user], "User is not muted");
+        
+        mutedUsers[serverId][_user] = false;
+        emit UserUnmutedOnServer(serverId, _user);
+    }
+
+    ///
+    /// CHANNELS
+    ///
+
+    /// CREATING & DELETING
+
+    function createChannel(uint256 serverId, string memory channelName, bool isPublic) external onlyServerAdminOf(serverId) {
+        _createChannel(serverId, channelName, isPublic);
+    }
+
+    function _createChannel(uint256 serverId, string memory channelName, bool isPublic) internal return(uint256) {
+        channelCount++;
+        uint256 channelId = totalSupply();
+        channels[channelId] = Server(
+            channelId,
+            msg.sender,
+            channelName,
+            true,
+            isPublic,
+            new address[msg.sender](1)
+        );
+
+        unchecked {
+            _balances[msg.sender] += 1;
+        }
+
+        emit Transfer(address(0), msg.sender, channelId);
+
+        return channelId;
+    }
+
+    //Do we really need to burn the token or should we just deactivate it
+    function deleteChannel(uint256 id) external onlyExistingToken(id) onlyOwnerOf(id, "BURN") {
+        require(channels[id].isActive, "Channel is already deactivated");
+        channels[id].isActive = false;
+        /*
+        unchecked {
+            _balances[msg.sender] -= 1;
+        }
+
+        delete _tokenApprovals[id];
+
+        emit Transfer(msg.sender, address(0), id);
+        */
+    }
+
+    /// EDITING PROPERTIES
+
+    function setChannelAdmin(address admin, uint256 id, bool grant) external onlyOwnerOf(id) isAddressZero(admin) {
+        if (grant) {
+            grantRole(keccak256(string(abi.encodePacked("ADMIN_ROLE_CHANNEL", id))), admin);
+        }
+        else {
+            revokeRole(keccak256(string(abi.encodePacked("ADMIN_ROLE_CHANNEL", id))), admin);
+        }
+    }
+
+    ///
+    /// VIEWS
+    ///
+
+    function name() public view virtual returns (string memory) {
+        return _name;
+    }
+
+    function symbol() public view virtual returns (string memory) {
+        return _symbol;
+    }
+
+    function tokenURI(uint256 tokenId) public view virtual onlyExistingToken(tokenId) returns (string memory) {
+        string memory baseURI = _baseURI();
+        return bytes(baseURI).length != 0 ? string(abi.encodePacked(baseURI, idToType[tokenId].toString())) : '';
+    }
+    
+
+    function _baseURI() internal view virtual returns (string memory) {
+        return currentBaseURI;
+    }
+
+    function balanceOf(address owner) public view virtual isAddressZero(owner) returns (uint256) {
+        return _balances[owner];
+    }
+
+    function ownerOf(uint256 tokenId) public view virtual returns (address) {
+        address ownerOF = _ownerOf(tokenId);
+        require(_exists(tokenId), "ERC721: address zero is not a valid owner");
+        return ownerOF;
+    }
+
+    function _ownerOf(uint256 tokenId) internal view virtual returns (address) {
+        return idToType[tokenId] == SERVER ? servers[tokenId].owner : channels[tokenId].owner;
+    }
+
+    function _exists(uint256 tokenId) internal view virtual returns (bool) {
+        return _ownerOf(tokenId) != address(0);
+    }
+
+    function totalSupply() public view returns (uint256) {
+        return serverCount + channelCount /* + lastMessageId*/;
+    }
+
+    function tokenByIndex(uint256 _index) external view tokenInRange(_index) returns (uint256) {
+        return _index;
+    }
+
+    function tokenOfOwnerByIndex(address _owner, uint256 _index) external view returns (uint256) {
+        uint256 count;
+        uint256 lastSeen;
+        for (uint256 i = 0; i < totalSupply(); i++) {
+            count += 1;
+            if (_ownerOf(tokenId) == _owner) {
+                _index -= 1;
+                lastSeen = count;
+                if (_index == 0) {
+                    return count;
+                }
+            }
+        }
+
+        return lastSeen;
+    }
+
+    function getApproved(uint256 tokenId) public view virtual onlyExistingToken(tokenId) returns (address) {
+        return _tokenApprovals[tokenId];
+    }
+
+    function isApprovedForAll(address owner, address operator) public view virtual returns (bool) {
+        return _operatorApprovals[owner][operator];
+    }
+
+    /// 
+    /// OWNER
+    ///
+
+    function setAdmin(address admin, uint256 id, bool grant) external onlyOwner {
+        if (grant) {
+            grantRole(keccak256(string(abi.encodePacked("ADMIN_ROLE", id))), admin);
+        }
+        else {
+            revokeRole(keccak256(string(abi.encodePacked("ADMIN_ROLE", id))), admin);
+        }
+    }
+
+    function setBaseURI(string memory newBaseURI) external onlyOwner {
+        currentBaseURI = newBaseURI;
+    }
+
+    function withdraw(uint256 amount, address recipient) public onlyOwner {
+        (bool success, ) = payable(recipient).call{value: amount}("");
+        require(success);
+    }
+
+    ///
+    /// ADMIN
+    ///
+
+    ///
+    /// MISC
+    ///
 
     function getUserIndex(
         Server storage server,
@@ -1140,31 +1227,6 @@ contract RServer is ERC165, IERC721Metadata, Ownable, AccessControl {
         return false;
     }
 
-    function totalSupply() public view returns (uint256) {
-        return lastServerId + lastChannelId /* + lastMessageId*/;
-    }
-
-    function tokenByIndex(uint256 _index) external view tokenInRange(_index) returns (uint256) {
-        return _index;
-    }
-
-    function tokenOfOwnerByIndex(address _owner, uint256 _index) external view returns (uint256) {
-        uint256 count;
-        uint256 lastSeen;
-        for (uint256 i = 0; i < serverCount; i++) {
-            count += 1;
-            if (servers[i].owner == _owner) {
-                _index -= 1;
-                lastSeen = count;
-                if (_index == 0) {
-                    return count;
-                }
-            }
-        }
-
-        return lastSeen;
-    }
-
     function _isApprovedOrOwner(address spender, uint256 tokenId) internal view virtual returns (bool) {
         address owner = ownerOf(tokenId);
         return (spender == owner || isApprovedForAll(owner, spender) || getApproved(tokenId) == spender);
@@ -1180,7 +1242,6 @@ contract RServer is ERC165, IERC721Metadata, Ownable, AccessControl {
     }
 
 	function transferFrom(address from, address to, uint256 tokenId) public virtual {
-        //solhint-disable-next-line max-line-length
         require(_isApprovedOrOwner(msg.sender, tokenId), "ERC721: caller is not token owner or approved");
 
         _transfer(from, to, tokenId);
@@ -1201,7 +1262,14 @@ contract RServer is ERC165, IERC721Metadata, Ownable, AccessControl {
             _balances[from] -= 1;
             _balances[to] += 1;
         }
-        servers[tokenId].owner = to;
+
+        if (idToType[tokenId] == SERVER) {
+            servers[tokenId].owner = to; 
+        }
+        else {
+            channels[tokenId].owner = to;
+        }
+        
 
         emit Transfer(from, to, tokenId);
     }
@@ -1223,16 +1291,8 @@ contract RServer is ERC165, IERC721Metadata, Ownable, AccessControl {
         emit Approval(ownerOf(tokenId), to, tokenId);
     }
 
-	function getApproved(uint256 tokenId) public view virtual onlyExistingToken(tokenId) returns (address) {
-        return _tokenApprovals[tokenId];
-    }
-
     function setApprovalForAll(address operator, bool approved) public virtual {
         _setApprovalForAll(msg.sender, operator, approved);
-    }
-
-    function isApprovedForAll(address owner, address operator) public view virtual returns (bool) {
-        return _operatorApprovals[owner][operator];
     }
 
     function _setApprovalForAll(address owner, address operator, bool approved) internal virtual {
