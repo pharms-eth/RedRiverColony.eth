@@ -1,6 +1,73 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.7;
 
+// @title Red River Colony
+// @author Andre Costa @ Terratecc
+
+/**
+ * @dev String operations.
+ */
+library Strings {
+    bytes16 private constant _HEX_SYMBOLS = "0123456789abcdef";
+
+    /**
+     * @dev Converts a `uint256` to its ASCII `string` decimal representation.
+     */
+    function toString(uint256 value) internal pure returns (string memory) {
+        // Inspired by OraclizeAPI's implementation - MIT licence
+        // https://github.com/oraclize/ethereum-api/blob/b42146b063c7d6ee1358846c198246239e9360e8/oraclizeAPI_0.4.25.sol
+
+        if (value == 0) {
+            return "0";
+        }
+        uint256 temp = value;
+        uint256 digits;
+        while (temp != 0) {
+            digits++;
+            temp /= 10;
+        }
+        bytes memory buffer = new bytes(digits);
+        while (value != 0) {
+            digits -= 1;
+            buffer[digits] = bytes1(uint8(48 + uint256(value % 10)));
+            value /= 10;
+        }
+        return string(buffer);
+    }
+
+    /**
+     * @dev Converts a `uint256` to its ASCII `string` hexadecimal representation.
+     */
+    function toHexString(uint256 value) internal pure returns (string memory) {
+        if (value == 0) {
+            return "0x00";
+        }
+        uint256 temp = value;
+        uint256 length = 0;
+        while (temp != 0) {
+            length++;
+            temp >>= 8;
+        }
+        return toHexString(value, length);
+    }
+
+    /**
+     * @dev Converts a `uint256` to its ASCII `string` hexadecimal representation with fixed length.
+     */
+    function toHexString(uint256 value, uint256 length) internal pure returns (string memory) {
+        bytes memory buffer = new bytes(2 * length + 2);
+        buffer[0] = "0";
+        buffer[1] = "x";
+        for (uint256 i = 2 * length + 1; i > 1; --i) {
+            buffer[i] = _HEX_SYMBOLS[value & 0xf];
+            value >>= 4;
+        }
+        require(value == 0, "Strings: hex length insufficient");
+        return string(buffer);
+    }
+}
+
+
 /**
  * @dev Interface of the ERC165 standard, as defined in the
  * https://eips.ethereum.org/EIPS/eip-165[EIP].
@@ -622,8 +689,6 @@ contract RServer is ERC165, IERC721Metadata, Ownable, AccessControl {
 
     allow users to reactivate a channel or server after deactivating
 
-    channel handling to server and user handling to channel
-
     getter function to get a list of all servers and channels a user is part of (some channels might remain after user deletion from server). getter function to get a list of
     all users inside a channel. Should the same be implemented for servers ?
 
@@ -647,6 +712,8 @@ contract RServer is ERC165, IERC721Metadata, Ownable, AccessControl {
     allow the user to join public servers, no need to be added by admin
     */
 
+    using Strings for uint256;
+
     uint256 internal constant SERVER = 1;
     uint256 internal constant CHANNEL = 2;
     mapping(uint256 => uint256) internal idToType;
@@ -663,6 +730,8 @@ contract RServer is ERC165, IERC721Metadata, Ownable, AccessControl {
         //bytes32 role; add admin roles so user can create new channels, add new people, remove people, mute and unmute people
         uint256 generalChannelId;
     }
+
+    
     mapping(uint256 => Server) public servers;
     uint256 public serverCount;
 
@@ -685,6 +754,7 @@ contract RServer is ERC165, IERC721Metadata, Ownable, AccessControl {
         uint256[] serverIds;
         uint256[] channelIds;
     }
+    mapping(address => User) public users;
     mapping(address => mapping(uint256 => bool)) public userToChannel;
     mapping(uint256 => mapping(address => bool)) public bannedUsers;
     mapping(uint256 => mapping(address => bool)) public mutedUsers;
@@ -702,10 +772,12 @@ contract RServer is ERC165, IERC721Metadata, Ownable, AccessControl {
     //event ServerIconChanged(uint256 indexed serverId, string newIcon);
     //event ServermessageChanged(uint256 indexed serverId, string newMessage);
     event UserDeletedFromServer(uint256 indexed serverId,address indexed userAddress);
+    event UserDeletedFromChannel(uint256 indexed channelId,address indexed userAddress);
     event MetadataUpdate(uint256 _tokenId);
     event ChannelDeletedFromServer(uint256 indexed serverId,uint256 indexed channelId);
     event ChannelAddedToServer(uint256 indexed serverId,uint256 indexed channelId);
     event UserAddedToServer(uint256 indexed serverId,address indexed userAddress);
+    event UserAddedToChannel(uint256 indexed channelId,address indexed userAddress);
     event UserMutedOnServer(uint256 indexed serverId,address indexed userAddress);
     event UserUnmutedOnServer(uint256 indexed serverId,address indexed userAddress);
     event UserBannedOnServer(uint256 indexed serverId,address indexed userAddress);
@@ -724,12 +796,12 @@ contract RServer is ERC165, IERC721Metadata, Ownable, AccessControl {
     ///
 
 
-    // function supportsInterface(bytes4 interfaceId) public view virtual override(ERC165, IERC165) returns (bool) {
-    //     return
-    //         interfaceId == type(IERC721).interfaceId ||
-    //         interfaceId == type(IERC721Metadata).interfaceId ||
-    //         interfaceId == type(IERC165).interfaceId;
-    // }
+    function supportsInterface(bytes4 interfaceId) public view virtual override(ERC165, IERC165, AccessControl) returns (bool) {
+         return
+            interfaceId == type(IERC721).interfaceId ||
+            interfaceId == type(IERC721Metadata).interfaceId ||
+            interfaceId == type(IERC165).interfaceId;
+    }
 
     modifier onlyExistingToken(uint256 tokenId) {
         require(
@@ -761,7 +833,7 @@ contract RServer is ERC165, IERC721Metadata, Ownable, AccessControl {
 
     modifier onlyServerAdminOf(uint256 id, string memory _function) {
         address serverOwner = _ownerOf(id);
-        if (hasRole(keccak256(string(abi.encodePacked("ADMIN_ROLE_SERVER", id))), msg.sender) || serverOwner != msg.sender) {
+        if (hasRole(keccak256(abi.encodePacked("ADMIN_ROLE_SERVER", id)), msg.sender) || serverOwner != msg.sender) {
             revert RRCServer_ServerNoPermission(
                 id,
                 msg.sender,
@@ -773,7 +845,7 @@ contract RServer is ERC165, IERC721Metadata, Ownable, AccessControl {
 
     modifier onlyChannelAdminOf(uint256 id, string memory _function) {
         address channelOwner = _ownerOf(id);
-        if (hasRole(keccak256(string(abi.encodePacked("ADMIN_ROLE_CHANNEL", id))), msg.sender) || channelOwner != msg.sender) {
+        if (hasRole(keccak256(abi.encodePacked("ADMIN_ROLE_CHANNEL", id)), msg.sender) || channelOwner != msg.sender) {
             revert RRCServer_ServerNoPermission(
                 id,
                 msg.sender,
@@ -797,9 +869,9 @@ contract RServer is ERC165, IERC721Metadata, Ownable, AccessControl {
         _;
     }
 
-    modifier inServer(address _address, uint256 id) {
-        uint256 generalChannelId = servers[serverId].generalChannelId;
-        require(userToChannel[userAddress][generalChannelId], "Not in server");
+    modifier inServer(address userAddress, uint256 id) {
+        uint256 generalChannelId = servers[id].generalChannelId;
+        require(userToChannel[userAddress][generalChannelId] && !bannedUsers[id][userAddress], "Not in server");
         _;
     }
 
@@ -809,13 +881,14 @@ contract RServer is ERC165, IERC721Metadata, Ownable, AccessControl {
 
     /// CREATING & DELETING
 
-    function createServer(string memory serverName, bool isPublic) external {
+    function createServer(string memory serverName, address nameResolver, bool isPublic) external {
         serverCount++;
         uint256 serverId = totalSupply();
         servers[serverId] = Server(
             serverId,
             msg.sender,
             serverName,
+            nameResolver,
             true,
             isPublic,
             new uint256[](0),
@@ -853,12 +926,12 @@ contract RServer is ERC165, IERC721Metadata, Ownable, AccessControl {
 
     /// EDITING PROPERTIES
 
-    function setServerAdmin(address admin, uint256 id, bool grant) external onlyOwnerOf(id) isAddressZero(admin) {
+    function setServerAdmin(address admin, uint256 id, bool grant) external onlyOwnerOf(id, "SET SERVER ADMIN") isAddressZero(admin) {
         if (grant) {
-            grantRole(keccak256(string(abi.encodePacked("ADMIN_ROLE_SERVER", id))), admin);
+            grantRole(keccak256(abi.encodePacked("ADMIN_ROLE_SERVER", id)), admin);
         }
         else {
-            revokeRole(keccak256(string(abi.encodePacked("ADMIN_ROLE_SERVER", id))), admin);
+            revokeRole(keccak256(abi.encodePacked("ADMIN_ROLE_SERVER", id)), admin);
         }
     }
 
@@ -892,55 +965,13 @@ contract RServer is ERC165, IERC721Metadata, Ownable, AccessControl {
 
         emit ServermessageChanged(serverId, newMessage);
     }*/
-
-    /// CHANNEL HANDLING
-
-    function addChannelToServer(uint256 serverId, uint256 channelId) public tokenInRange(serverId) onlyOwnerOf(serverId, "Add to channels") {
-        if (channelId == 0) {
-            revert RRCServer_InvalidUint256Parameter("channel id", channelId);
-        }
-        if (contains(servers[serverId].channels, channelId)) {
-            revert RRCServer_ChannelAlreadyExists(channelId);
-        }
-
-        servers[serverId].channels.push(channelId);
-
-        emit ChannelAddedToServer(serverId, channelId);
-    }
-
-    function deleteChannelFromServer(
-        uint256 serverId,
-        uint256 channelId
-    ) public tokenInRange(serverId) onlyOwnerOf(serverId, "delete channel") {
-        Server storage server = servers[serverId];
-        uint256 channelIndex = getChannelIndex(server, channelId);
-        if (channelIndex == server.channels.length) {
-            revert RRCServer_ChannelNotFound(channelId);
-        }
-
-        // Swap the channel to be deleted with the last channel in the array
-        if (channelIndex < server.channels.length - 1) {
-            server.channels[channelIndex] = server.channels[
-                server.channels.length - 1
-            ];
-        }
-
-        // Remove the last channel from the array
-        server.channels.pop();
-
-        // Emit an event to indicate that a channel was deleted from the server
-        emit ChannelDeletedFromServer(serverId, channelId);
-    }
     
 
     /// USER HANDLING
 
-    function addUserToServer(uint256 serverId, address userAddress) external onlyExistingToken(serverId) onlyActive(serverId) onlyServerAdminOf(serverId) isAddressZero(userAddress) {
-        require(!bannedUsers[serverId][_user], "User is banned");
+    function addUserToServer(uint256 serverId, address userAddress) external onlyExistingToken(serverId) onlyActive(serverId) onlyServerAdminOf(serverId, "ADD USER TO SERVER") isAddressZero(userAddress) {
+        require(!bannedUsers[serverId][userAddress], "Banned user!");
 
-        /*if (contains(servers[serverId].users, userAddress)) {
-            revert RRCServer_UserAlreadyExists(serverId, userAddress);
-        }*/
         uint256 generalChannelId = servers[serverId].generalChannelId;
         require(!userToChannel[userAddress][generalChannelId], "Already in server");
 
@@ -953,7 +984,7 @@ contract RServer is ERC165, IERC721Metadata, Ownable, AccessControl {
         emit UserAddedToServer(serverId, userAddress);
     }
 
-    function deleteUserFromServer(uint256 serverId, address userAddress) external onlyExistingToken(serverId) onlyActive(serverId) onlyServerAdminOf(serverId) isAddressZero(userAddress) inServer(userAddress) {
+    function deleteUserFromServer(uint256 serverId, address userAddress) external onlyExistingToken(serverId) onlyActive(serverId) onlyServerAdminOf(serverId, "DELETE USER FROM SERVER") isAddressZero(userAddress) inServer(userAddress, serverId) {
         _deleteUserFromServer(serverId, userAddress);
     }
 
@@ -963,13 +994,13 @@ contract RServer is ERC165, IERC721Metadata, Ownable, AccessControl {
 
         userToChannel[userAddress][server.generalChannelId] = false;
         
-        uint256 serverIndex = getServerIndex(server, userAddress);
+        uint256 serverIndex = getServerIndex(user, serverId);
         // Swap the user to be deleted with the last user in the array
         if (serverIndex < user.serverIds.length - 1) {
-            user.serverIds[userIndex] = user.serverIds[user.serverIds.length - 1];
+            user.serverIds[serverIndex] = user.serverIds[user.serverIds.length - 1];
         }
         // Remove the last user from the array
-        users.serverIds.pop();
+        user.serverIds.pop();
 
         uint256 userIndex = getUserIndex(server, userAddress);
         // Swap the user to be deleted with the last user in the array
@@ -997,8 +1028,8 @@ contract RServer is ERC165, IERC721Metadata, Ownable, AccessControl {
     function unbanUser(uint256 serverId, address _user) external onlyExistingToken(serverId) onlyActive(serverId) onlyOwnerOf(serverId, "UNBAN USER") inServer(_user, serverId) isAddressZero(_user) {
         require(bannedUsers[serverId][_user], "User is not banned");
         
-        bannedUsers[_serverId][_user] = false;
-        emit UserUnbannedOnServer(_serverId, _user);
+        bannedUsers[serverId][_user] = false;
+        emit UserUnbannedOnServer(serverId, _user);
     }
 
     function muteUser(uint256 serverId, address _user) external onlyExistingToken(serverId) onlyActive(serverId) onlyOwnerOf(serverId, "MUTE USER") inServer(_user, serverId) isAddressZero(_user) {
@@ -1021,21 +1052,24 @@ contract RServer is ERC165, IERC721Metadata, Ownable, AccessControl {
 
     /// CREATING & DELETING
 
-    function createChannel(uint256 serverId, string memory channelName, bool isPublic) external onlyServerAdminOf(serverId) {
+    function createChannel(uint256 serverId, string memory channelName, bool isPublic) external onlyServerAdminOf(serverId, "CREATE CHANNEL") {
         _createChannel(serverId, channelName, isPublic);
     }
 
-    function _createChannel(uint256 serverId, string memory channelName, bool isPublic) internal return(uint256) {
+    function _createChannel(uint256 serverId, string memory channelName, bool isPublic) internal returns(uint256) {
         channelCount++;
         uint256 channelId = totalSupply();
-        channels[channelId] = Server(
+        channels[channelId] = Channel(
             channelId,
+            serverId,
             msg.sender,
             channelName,
             true,
             isPublic,
-            new address[msg.sender](1)
+            new address[](0)
         );
+        channels[channelId].users.push(msg.sender);
+
 
         unchecked {
             _balances[msg.sender] += 1;
@@ -1063,13 +1097,54 @@ contract RServer is ERC165, IERC721Metadata, Ownable, AccessControl {
 
     /// EDITING PROPERTIES
 
-    function setChannelAdmin(address admin, uint256 id, bool grant) external onlyOwnerOf(id) isAddressZero(admin) {
+    function setChannelAdmin(address admin, uint256 id, bool grant) external onlyOwnerOf(id, "SET CHANNEL ADMIN") isAddressZero(admin) {
         if (grant) {
-            grantRole(keccak256(string(abi.encodePacked("ADMIN_ROLE_CHANNEL", id))), admin);
+            grantRole(keccak256(abi.encodePacked("ADMIN_ROLE_CHANNEL", id)), admin);
         }
         else {
-            revokeRole(keccak256(string(abi.encodePacked("ADMIN_ROLE_CHANNEL", id))), admin);
+            revokeRole(keccak256(abi.encodePacked("ADMIN_ROLE_CHANNEL", id)), admin);
         }
+    }
+
+    /// USER HANDLING
+
+    function addUserToChannel(uint256 channelId, address userAddress) external onlyExistingToken(channelId) onlyActive(channelId) onlyChannelAdminOf(channelId, "ADD USER TO CHANNEL") isAddressZero(userAddress) inServer(userAddress, channels[channelId].serverId) {
+        require(!userToChannel[userAddress][channelId], "Already in channel");
+
+        userToChannel[userAddress][channelId] = true;
+        users[userAddress].channelIds.push(channelId);
+        channels[channelId].users.push(userAddress); 
+        
+
+        emit UserAddedToChannel(channelId, userAddress);
+    }
+
+    function deleteUserFromChannel(uint256 channelId, address userAddress) external onlyExistingToken(channelId) onlyActive(channelId) onlyChannelAdminOf(channelId, "DELETE USER FROM CHANNEL") isAddressZero(userAddress) inServer(userAddress, channels[channelId].serverId) {
+        require(userToChannel[userAddress][channelId], "Not in channel");
+        
+        User storage user = users[userAddress];
+        Channel storage channel = channels[channelId];
+
+        userToChannel[userAddress][channelId] = false;
+        
+        uint256 channelIndex = getChannelIndex(user, channelId);
+        // Swap the user to be deleted with the last user in the array
+        if (channelIndex < user.channelIds.length - 1) {
+            user.channelIds[channelIndex] = user.channelIds[user.channelIds.length - 1];
+        }
+        // Remove the last user from the array
+        user.serverIds.pop();
+
+        uint256 userIndex = getUserIndex(channel, userAddress);
+        // Swap the user to be deleted with the last user in the array
+        if (userIndex < channel.users.length - 1) {
+            channel.users[userIndex] = channel.users[channel.users.length - 1];
+        }
+        // Remove the last user from the array
+        channel.users.pop();
+
+        // Emit an event to indicate that a user was deleted from the server
+        emit UserDeletedFromChannel(channelId, userAddress);
     }
 
     ///
@@ -1116,7 +1191,7 @@ contract RServer is ERC165, IERC721Metadata, Ownable, AccessControl {
         return serverCount + channelCount /* + lastMessageId*/;
     }
 
-    function tokenByIndex(uint256 _index) external view tokenInRange(_index) returns (uint256) {
+    function tokenByIndex(uint256 _index) external pure returns (uint256) {
         return _index;
     }
 
@@ -1125,7 +1200,7 @@ contract RServer is ERC165, IERC721Metadata, Ownable, AccessControl {
         uint256 lastSeen;
         for (uint256 i = 0; i < totalSupply(); i++) {
             count += 1;
-            if (_ownerOf(tokenId) == _owner) {
+            if (_ownerOf(count) == _owner) {
                 _index -= 1;
                 lastSeen = count;
                 if (_index == 0) {
@@ -1151,10 +1226,10 @@ contract RServer is ERC165, IERC721Metadata, Ownable, AccessControl {
 
     function setAdmin(address admin, uint256 id, bool grant) external onlyOwner {
         if (grant) {
-            grantRole(keccak256(string(abi.encodePacked("ADMIN_ROLE", id))), admin);
+            grantRole(keccak256(abi.encodePacked("ADMIN_ROLE", id)), admin);
         }
         else {
-            revokeRole(keccak256(string(abi.encodePacked("ADMIN_ROLE", id))), admin);
+            revokeRole(keccak256(abi.encodePacked("ADMIN_ROLE", id)), admin);
         }
     }
 
@@ -1188,14 +1263,53 @@ contract RServer is ERC165, IERC721Metadata, Ownable, AccessControl {
         return len;
     }
 
+    function getUserIndex(
+        Channel storage channel,
+        address userAddress
+    ) internal view returns (uint256) {
+        uint256 len = channel.users.length;
+        for (uint256 i = 0; i < len; i++) {
+            if (channel.users[i] == userAddress) {
+                return i;
+            }
+        }
+        return len;
+    }
+
     function getChannelIndex(
         Server storage server,
         uint256 channelId
     ) internal view returns (uint256) {
-        uint256 len = server.channels.length;
+        uint256 len = server.channelIds.length;
         for (uint256 i = len; i > 0; i--) {
-            if (server.channels[i - 1] == channelId) {
+            if (server.channelIds[i - 1] == channelId) {
                 return i - 1;
+            }
+        }
+        return len;
+    }
+
+    function getChannelIndex(
+        User storage user,
+        uint256 channelId
+    ) internal view returns (uint256) {
+         uint256 len = user.channelIds.length;
+        for (uint256 i = 0; i < len; i++) {
+            if (user.channelIds[i] == channelId) {
+                return i;
+            }
+        }
+        return len;
+    }
+
+    function getServerIndex(
+        User storage user,
+        uint256 serverId
+    ) internal view returns (uint256) {
+        uint256 len = user.serverIds.length;
+        for (uint256 i = 0; i < len; i++) {
+            if (user.serverIds[i] == serverId) {
+                return i;
             }
         }
         return len;
