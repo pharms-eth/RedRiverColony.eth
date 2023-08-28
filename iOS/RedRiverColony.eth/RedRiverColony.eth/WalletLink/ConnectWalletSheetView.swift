@@ -23,13 +23,14 @@ struct ConnectWalletSheetView: View {
     @Environment(\.dismiss) var dismiss
 
     var body: some View {
-        VStack {
-            ConnectWalletSheetObjectView()
+        VStack(spacing: 0) {
+            ConnectWalletSheetHeaderView()
             Divider()
             ConnectWalletSheetWalletsView(walletLinkViewModel: walletLinkViewModel)
             Divider()
             List(actions) { action in
 //TODO: complete
+//TODO: PixelQuantum
                 if action == .addChain {
                     Text("hello")
                 } else if action == .switchChain {
@@ -58,6 +59,7 @@ struct ConnectWalletSheetWalletsView: View {
 
     var body: some View {
         ScrollView(.horizontal) {
+            //TODO: PixelQuantum
             HStack(spacing: 25) {
                 VStack(spacing: 6) {
                     AsyncImage(url: walletLinkViewModel.wallet.iconUrl) { img in
@@ -76,7 +78,7 @@ struct ConnectWalletSheetWalletsView: View {
                         .font(.caption)
                 }
                 .onTapGesture {
-                    walletLinkViewModel.initiateHandshake()
+                    walletLinkViewModel.initiateHandshakeWithCoinbase()
                 }
 
 
@@ -90,9 +92,9 @@ struct ConnectWalletSheetWalletsView: View {
                         .font(.caption)
                 }
                 .onTapGesture {
-                    walletLinkViewModel.connect()
+                    walletLinkViewModel.connectMetaMask()
                 }
-
+//TODO: PixelQuantum
 //-----------------------------------------------------------------------
 
 
@@ -119,7 +121,7 @@ struct ConnectWalletSheetWalletsView: View {
     }
 }
 
-struct ConnectWalletSheetObjectView: View {
+struct ConnectWalletSheetHeaderView: View {
     @Environment(\.dismiss) var dismiss
     var body: some View {
         HStack {
@@ -160,9 +162,10 @@ struct ConnectWalletSheetObjectView: View {
         }
         .padding(.leading, 16)
         .padding(.trailing, 12)
-        .padding(.vertical, 16)
+        .padding(.vertical, 4)
     }
 }
+
 //struct ConnectWalletSheetView_Previews: PreviewProvider {
 //    static var previews: some View {
 //        ConnectWalletSheetView()

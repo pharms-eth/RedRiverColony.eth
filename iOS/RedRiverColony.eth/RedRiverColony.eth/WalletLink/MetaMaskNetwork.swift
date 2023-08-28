@@ -7,7 +7,7 @@
 
 import Foundation
 
-enum Network: String, CaseIterable, Identifiable {
+enum MetaMaskNetwork: String, CaseIterable, Identifiable {
     case goerli = "0x5"
     case kovan = "0x2a"
     case ethereum = "0x1"
@@ -35,7 +35,7 @@ enum Network: String, CaseIterable, Identifiable {
         }
     }
 
-    static func chain(for chainId: String) -> Network? {
+    static func chain(for chainId: String) -> MetaMaskNetwork? {
         self.allCases.first(where: { $0.rawValue == chainId })
     }
 

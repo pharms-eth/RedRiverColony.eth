@@ -22,9 +22,10 @@ class WalletLinkedViewModel: ObservableObject {
 
     private var cancellables: Set<AnyCancellable> = []
     @Published var messageSuccess: Bool?
+    private var errorMessage: String?
 
     func createSIWEMessage() throws {
-        guard let address = self.account?.address, let chainId = account?.networkId else { //"0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"
+        guard let address = self.account?.address, let chainId = account?.networkId else {
             return
         }
 
@@ -42,7 +43,6 @@ class WalletLinkedViewModel: ObservableObject {
         dateFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
         object.issuedAt = dateFormatter.string(from: Date())
 
-
         guard !(try object.toMessage()).isEmpty else {
             return
         }
@@ -58,7 +58,7 @@ class WalletLinkedViewModel: ObservableObject {
 
     func coinbaseCreateSIWEMessage(_ object: SIWEMessage, address: String) throws {
 
-        CoinbaseWalletSDK.shared.makeRequest(Request(actions: [
+        MWPClient.getInstance(to: .coinbaseWallet)?.makeRequest(Request(actions: [
                 Action(jsonRpc: .personal_sign(address: address, message: try object.toMessage()))
             ]))
         { result in
@@ -86,22 +86,15 @@ class WalletLinkedViewModel: ObservableObject {
     }
 
     func metaMaskCreateSIWEMessage(_ object: SIWEMessage) throws {
-
         let signRequest = EthereumRequest(method: .personalSign, params: [MetaMaskSDK.shared.ethereum.selectedAddress, try object.toMessage()])
-
-
         MetaMaskSDK.shared.ethereum.request(signRequest)?.sink(receiveCompletion: { completion in
-//            switch completion {
-//                case let .failure(error):
-//                    self.errorMessage = error.localizedDescription
-//                    self.showError = true
-//                default: break
-//            }
+            switch completion {
+                case let .failure(error):
+                    self.errorMessage = error.localizedDescription
+                    self.messageSuccess = false
+                default: break
+            }
         }, receiveValue: { value in
-//            self.result = value as? String ?? ""
-//            print(value)
-//            print("=========")
-
             Task {
                 do {
                     self.messageSuccess = try await self.verify(message: object, against: value as? String ?? "")
@@ -111,26 +104,20 @@ class WalletLinkedViewModel: ObservableObject {
             }
         })
         .store(in: &cancellables)
-
-
     }
-
-
-
 
     func verify(message: SIWEMessage, against signature: String) async throws -> Bool {
         guard let sig = Data.fromHex(signature) else { return false }
         guard let data = try message.toMessage().data(using: .utf8) else { return false }
         let signer = await web3()?.personal.recoverAddress(message: data, signature: sig)
         return message.address.lowercased() == signer?.address.lowercased()
-
     }
 
     func resetConnection() {
         self.account = nil
         switch account?.provider {
             case .coinbase:
-                let result = CoinbaseWalletSDK.shared.resetSession()
+                let _ = MWPClient.getInstance(to: .coinbaseWallet)?.resetSession()
             default:
                 print("nothing implemented yet")
         }

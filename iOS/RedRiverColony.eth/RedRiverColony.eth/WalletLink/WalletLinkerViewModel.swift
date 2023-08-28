@@ -29,34 +29,35 @@ class WalletLinkerViewModel: ObservableObject {
         }
         return instance
     }
-    private var ethereum = MetaMaskSDK.shared.ethereum
+    private var mmEthereum = MetaMaskSDK.shared.ethereum
 
-    func connect() {
-        ethereum.connect(dapp)?.sink(receiveCompletion: { completion in
-//            switch completion {
-//            case let .failure(error):
-////                self.errorMessage = error.localizedDescription
-//            default: break
-//            }
+    private var errorMessage: String?
+
+    func connectMetaMask() {
+        mmEthereum.connect(dapp)?.sink(receiveCompletion: { completion in
+            switch completion {
+            case let .failure(error):
+                self.errorMessage = error.localizedDescription
+            default: break
+            }
         }, receiveValue: { result in
             guard let address = result as? String else { return }
-            let chain = Network.chain(for: self.ethereum.chainId)
+            let chain = MetaMaskNetwork.chain(for: self.mmEthereum.chainId)
             self.account =  Wallet.Address(chain: chain?.name ?? "UNKNOWN", networkId: chain?.networkID ?? .max, address: address, provider: .metamask)
-            //result is the address
         })
         .store(in: &cancellables)
     }
 
-    func initiateHandshake() {
-        CoinbaseWalletSDK.shared.initiateHandshake() { result, account in
+    func initiateHandshakeWithCoinbase() {
+        MWPClient.getInstance(to: .coinbaseWallet)?.initiateHandshake { result, account in
             switch result {
                 case .success(let response):
                     for returnValue in response.content {
                         switch returnValue {
                         case .success(let value):
-                                guard self.account == nil else {
-                                    return
-                                }
+                            guard self.account == nil else {
+                                return
+                            }
                             guard let decoded = value.decode() as? [String: Any] else {
                                 return
                             }
@@ -69,21 +70,20 @@ class WalletLinkerViewModel: ObservableObject {
                             guard let address = decoded["address"] as? String else {
                                 return
                             }
-                                self.account =  Wallet.Address(chain: chain, networkId: UInt(networkId), address: address, provider: .coinbase)
+
+                            self.account =  Wallet.Address(chain: chain, networkId: UInt(networkId), address: address, provider: .coinbase)
+
                         case .failure(let error):
-        //                    self.log("error \(error.code): \(error.message)")
-                                print(error)
+                            print("code: \(error.code)" + error.message)
                         }
                     }
-                guard let account = account else { return }
-                guard self.account == nil else { return }
+                    guard let account = account else { return }
+                    guard self.account == nil else { return }
                     self.account =  Wallet.Address(chain: account.chain, networkId: account.networkId, address: account.address, provider: .coinbase)
             case .failure(let error):
                     let abc = type(of: error)
                     print(error.localizedDescription)
-
                     print(abc)
-    //                self.log("\(error)")
                     print(error)
             }
         }
