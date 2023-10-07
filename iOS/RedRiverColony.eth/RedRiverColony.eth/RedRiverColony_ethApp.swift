@@ -6,32 +6,15 @@
 //
 
 import SwiftUI
-import ExSoul_Eth
 import CoinbaseWalletSDK
 import metamask_ios_sdk
 
-
 @main
 struct RedRiverColony_ethApp: App {
-    @State var account: Wallet.Address?
-
     var body: some Scene {
         WindowGroup {
             Group {
-                //            SIWEDemoView()
-//                WalletConnect()
-                if account != nil {
-                    VStack {
-                        Text("account found")
-                        Text("MetaMaskConnect")
-                        WalletLinkedView(account: $account)
-                    }
-                } else {
-                    ConnectWalletButton(account: $account)
-                        .padding()
-                        .background(Color.ethereumLightBlue)
-                        .cornerRadius(10)
-                }
+                RedRiverColonyParentView()
             }
             .onAppear{
                 guard let callbackURL = URL(string: "https://redrivercolony.xyz") else {
@@ -49,6 +32,7 @@ struct RedRiverColony_ethApp: App {
             .onContinueUserActivity(NSUserActivityTypeBrowsingWeb, perform: handleSpotlight)
             .onOpenURL(perform: handleLink)
         }
+        .modelContainer(for: [Keystore.self, KdfParams.self, CryptoParams.self, CipherParams.self, Address.self])
     }
 
     func handleSpotlight(_ userActivity: NSUserActivity) {
@@ -71,3 +55,5 @@ struct RedRiverColony_ethApp: App {
         }
     }
 }
+
+

@@ -37,3 +37,17 @@ extension Color {
         )
     }
 }
+
+extension Color {
+    static let background = Color("Background")
+    static let primaryOrange = Color("PrimaryOrange")
+
+    static let textBackground = Color("TextBackground")
+    static let textForeground = Color("TextForeground")
+
+    static let labelForeground = Color("LabelForeground")
+
+    static let cardBorder = Color("CardBorder")
+
+    static let secondaryOrange = Color("SecondaryOrange")
+}

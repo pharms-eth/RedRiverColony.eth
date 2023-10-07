@@ -8,6 +8,29 @@
 
 /* Begin PBXBuildFile section */
 		6F4FBCCD29F050E1005AF394 /* CoinbaseWalletSDK in Frameworks */ = {isa = PBXBuildFile; productRef = 6F4FBCCC29F050E1005AF394 /* CoinbaseWalletSDK */; };
+		6F7D54F12AA8E65F00F78960 /* WalletsStoredManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F7D54F02AA8E65F00F78960 /* WalletsStoredManager.swift */; };
+		6F7D55072AAC07EF00F78960 /* KeyChain.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F7D55062AAC07EF00F78960 /* KeyChain.swift */; };
+		6F7D55092AAC086300F78960 /* Keystore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F7D55082AAC086300F78960 /* Keystore.swift */; };
+		6F7D550B2AAECD8100F78960 /* WalletSetup.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F7D550A2AAECD8100F78960 /* WalletSetup.swift */; };
+		6F7D550D2AB7A50E00F78960 /* Cache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F7D550C2AB7A50E00F78960 /* Cache.swift */; };
+		6F7D550F2AB7A65100F78960 /* Etherscan.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F7D550E2AB7A65100F78960 /* Etherscan.swift */; };
+		6F7D55152AC7C7D700F78960 /* WalletSelectorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F7D55142AC7C7D700F78960 /* WalletSelectorView.swift */; };
+		6F7D55182AC7CBD600F78960 /* WalletSetupMenuView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F7D55172AC7CBD600F78960 /* WalletSetupMenuView.swift */; };
+		6F7D551A2AC7CD0800F78960 /* WalletSetupStyledButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F7D55192AC7CD0800F78960 /* WalletSetupStyledButton.swift */; };
+		6F7D551E2AC9EFDF00F78960 /* WalletImportView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F7D551D2AC9EFDF00F78960 /* WalletImportView.swift */; };
+		6F7D55202AC9F02500F78960 /* WalletCreateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F7D551F2AC9F02500F78960 /* WalletCreateView.swift */; };
+		6F7D55222AC9F22600F78960 /* WalletImportViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F7D55212AC9F22600F78960 /* WalletImportViewModel.swift */; };
+		6F7D55242AC9FC8A00F78960 /* ViewModifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F7D55232AC9FC8A00F78960 /* ViewModifier.swift */; };
+		6F7D55262AC9FD8900F78960 /* WalletTextField.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F7D55252AC9FD8900F78960 /* WalletTextField.swift */; };
+		6F7D55282AC9FDAF00F78960 /* WalletButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F7D55272AC9FDAF00F78960 /* WalletButton.swift */; };
+		6F7D552A2AC9FFB600F78960 /* EllipticalProgress.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F7D55292AC9FFB600F78960 /* EllipticalProgress.swift */; };
+		6F7D552C2ACA05AD00F78960 /* WalletCreateViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F7D552B2ACA05AD00F78960 /* WalletCreateViewModel.swift */; };
+		6F7D552F2ACA086400F78960 /* WalletCreatePasswordView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F7D552E2ACA086400F78960 /* WalletCreatePasswordView.swift */; };
+		6F7D55312ACA092500F78960 /* WalletCreateSeedRetrieveView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F7D55302ACA092500F78960 /* WalletCreateSeedRetrieveView.swift */; };
+		6F7D55332ACA09A300F78960 /* WalletCreateseedConfirmationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F7D55322ACA09A300F78960 /* WalletCreateseedConfirmationView.swift */; };
+		6F7D55352ACA09F600F78960 /* WalletCreateSuccessView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F7D55342ACA09F600F78960 /* WalletCreateSuccessView.swift */; };
+		6F7D55372AD0FF6900F78960 /* ContractRetriever.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F7D55362AD0FF6900F78960 /* ContractRetriever.swift */; };
+		6F7D55392AD0FFCF00F78960 /* RedRiverColonyParentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F7D55382AD0FFCF00F78960 /* RedRiverColonyParentView.swift */; };
 		6F9F4B5E29EB336B0035922A /* RedRiverColony_ethApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F9F4B5D29EB336B0035922A /* RedRiverColony_ethApp.swift */; };
 		6F9F4B6229EB336C0035922A /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 6F9F4B6129EB336C0035922A /* Assets.xcassets */; };
 		6F9F4B6529EB336C0035922A /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 6F9F4B6429EB336C0035922A /* Preview Assets.xcassets */; };
@@ -54,6 +77,30 @@
 
 /* Begin PBXFileReference section */
 		6F4FBCCB29F050A0005AF394 /* wallet-mobile-sdk-master 2 */ = {isa = PBXFileReference; lastKnownFileType = wrapper; name = "wallet-mobile-sdk-master 2"; path = "../../../../../Downloads/wallet-mobile-sdk-master 2"; sourceTree = "<group>"; };
+		6F7D54F02AA8E65F00F78960 /* WalletsStoredManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalletsStoredManager.swift; sourceTree = "<group>"; };
+		6F7D55062AAC07EF00F78960 /* KeyChain.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyChain.swift; sourceTree = "<group>"; };
+		6F7D55082AAC086300F78960 /* Keystore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Keystore.swift; sourceTree = "<group>"; };
+		6F7D550A2AAECD8100F78960 /* WalletSetup.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalletSetup.swift; sourceTree = "<group>"; };
+		6F7D550C2AB7A50E00F78960 /* Cache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Cache.swift; sourceTree = "<group>"; };
+		6F7D550E2AB7A65100F78960 /* Etherscan.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Etherscan.swift; sourceTree = "<group>"; };
+		6F7D55102ABE55FE00F78960 /* RedRiverColony-eth-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "RedRiverColony-eth-Info.plist"; sourceTree = SOURCE_ROOT; };
+		6F7D55142AC7C7D700F78960 /* WalletSelectorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalletSelectorView.swift; sourceTree = "<group>"; };
+		6F7D55172AC7CBD600F78960 /* WalletSetupMenuView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalletSetupMenuView.swift; sourceTree = "<group>"; };
+		6F7D55192AC7CD0800F78960 /* WalletSetupStyledButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalletSetupStyledButton.swift; sourceTree = "<group>"; };
+		6F7D551D2AC9EFDF00F78960 /* WalletImportView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalletImportView.swift; sourceTree = "<group>"; };
+		6F7D551F2AC9F02500F78960 /* WalletCreateView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalletCreateView.swift; sourceTree = "<group>"; };
+		6F7D55212AC9F22600F78960 /* WalletImportViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalletImportViewModel.swift; sourceTree = "<group>"; };
+		6F7D55232AC9FC8A00F78960 /* ViewModifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewModifier.swift; sourceTree = "<group>"; };
+		6F7D55252AC9FD8900F78960 /* WalletTextField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalletTextField.swift; sourceTree = "<group>"; };
+		6F7D55272AC9FDAF00F78960 /* WalletButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalletButton.swift; sourceTree = "<group>"; };
+		6F7D55292AC9FFB600F78960 /* EllipticalProgress.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EllipticalProgress.swift; sourceTree = "<group>"; };
+		6F7D552B2ACA05AD00F78960 /* WalletCreateViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalletCreateViewModel.swift; sourceTree = "<group>"; };
+		6F7D552E2ACA086400F78960 /* WalletCreatePasswordView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalletCreatePasswordView.swift; sourceTree = "<group>"; };
+		6F7D55302ACA092500F78960 /* WalletCreateSeedRetrieveView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalletCreateSeedRetrieveView.swift; sourceTree = "<group>"; };
+		6F7D55322ACA09A300F78960 /* WalletCreateseedConfirmationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalletCreateseedConfirmationView.swift; sourceTree = "<group>"; };
+		6F7D55342ACA09F600F78960 /* WalletCreateSuccessView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalletCreateSuccessView.swift; sourceTree = "<group>"; };
+		6F7D55362AD0FF6900F78960 /* ContractRetriever.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContractRetriever.swift; sourceTree = "<group>"; };
+		6F7D55382AD0FFCF00F78960 /* RedRiverColonyParentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RedRiverColonyParentView.swift; sourceTree = "<group>"; };
 		6F9F4B5A29EB336B0035922A /* RedRiverColony.eth.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = RedRiverColony.eth.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		6F9F4B5D29EB336B0035922A /* RedRiverColony_ethApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RedRiverColony_ethApp.swift; sourceTree = "<group>"; };
 		6F9F4B6129EB336C0035922A /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -113,6 +160,63 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		6F7D55112AC7C71800F78960 /* src */ = {
+			isa = PBXGroup;
+			children = (
+				6F7D55162AC7CBBC00F78960 /* WalletSetup */,
+				6F9F4B9129EB86860035922A /* WalletLink */,
+				6F7D55142AC7C7D700F78960 /* WalletSelectorView.swift */,
+				6F7D55362AD0FF6900F78960 /* ContractRetriever.swift */,
+				6F7D55382AD0FFCF00F78960 /* RedRiverColonyParentView.swift */,
+			);
+			path = src;
+			sourceTree = "<group>";
+		};
+		6F7D55162AC7CBBC00F78960 /* WalletSetup */ = {
+			isa = PBXGroup;
+			children = (
+				6F7D55192AC7CD0800F78960 /* WalletSetupStyledButton.swift */,
+				6F7D551D2AC9EFDF00F78960 /* WalletImportView.swift */,
+				6F7D55212AC9F22600F78960 /* WalletImportViewModel.swift */,
+				6F7D552D2ACA07C300F78960 /* Create */,
+				6F7D55252AC9FD8900F78960 /* WalletTextField.swift */,
+				6F7D55272AC9FDAF00F78960 /* WalletButton.swift */,
+				6F7D55292AC9FFB600F78960 /* EllipticalProgress.swift */,
+				6F7D55232AC9FC8A00F78960 /* ViewModifier.swift */,
+			);
+			path = WalletSetup;
+			sourceTree = "<group>";
+		};
+		6F7D551B2AC9EDB000F78960 /* old */ = {
+			isa = PBXGroup;
+			children = (
+				6F7D551C2AC9EDBB00F78960 /* walletSetup */,
+			);
+			path = old;
+			sourceTree = "<group>";
+		};
+		6F7D551C2AC9EDBB00F78960 /* walletSetup */ = {
+			isa = PBXGroup;
+			children = (
+				6F7D550A2AAECD8100F78960 /* WalletSetup.swift */,
+				6F7D55172AC7CBD600F78960 /* WalletSetupMenuView.swift */,
+			);
+			path = walletSetup;
+			sourceTree = "<group>";
+		};
+		6F7D552D2ACA07C300F78960 /* Create */ = {
+			isa = PBXGroup;
+			children = (
+				6F7D551F2AC9F02500F78960 /* WalletCreateView.swift */,
+				6F7D55342ACA09F600F78960 /* WalletCreateSuccessView.swift */,
+				6F7D55322ACA09A300F78960 /* WalletCreateseedConfirmationView.swift */,
+				6F7D55302ACA092500F78960 /* WalletCreateSeedRetrieveView.swift */,
+				6F7D552B2ACA05AD00F78960 /* WalletCreateViewModel.swift */,
+				6F7D552E2ACA086400F78960 /* WalletCreatePasswordView.swift */,
+			);
+			path = Create;
+			sourceTree = "<group>";
+		};
 		6F9F4B5129EB336B0035922A = {
 			isa = PBXGroup;
 			children = (
@@ -140,14 +244,21 @@
 		6F9F4B5C29EB336B0035922A /* RedRiverColony.eth */ = {
 			isa = PBXGroup;
 			children = (
+				6F7D55102ABE55FE00F78960 /* RedRiverColony-eth-Info.plist */,
 				6F9F4BC129EC7A300035922A /* RedRiverColony.eth.entitlements */,
 				6F9F4B5D29EB336B0035922A /* RedRiverColony_ethApp.swift */,
+				6F7D55112AC7C71800F78960 /* src */,
 				6FC49FE529F76036002576F4 /* ENSProfileView.swift */,
 				6F9F4BAA29EB87400035922A /* Color.swift */,
+				6F7D54F02AA8E65F00F78960 /* WalletsStoredManager.swift */,
+				6F7D55062AAC07EF00F78960 /* KeyChain.swift */,
+				6F7D55082AAC086300F78960 /* Keystore.swift */,
+				6F7D551B2AC9EDB000F78960 /* old */,
+				6F7D550C2AB7A50E00F78960 /* Cache.swift */,
+				6F7D550E2AB7A65100F78960 /* Etherscan.swift */,
 				6F9F4BBE29EB8AA40035922A /* SIWE */,
 				6F9F4BB729EB875D0035922A /* SIWEButton */,
 				6F9F4BA629EB872D0035922A /* SIWEDemo */,
-				6F9F4B9129EB86860035922A /* WalletLink */,
 				6F9F4B6129EB336C0035922A /* Assets.xcassets */,
 				6F9F4B6329EB336C0035922A /* Preview Content */,
 			);
@@ -390,22 +501,45 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				6F7D55282AC9FDAF00F78960 /* WalletButton.swift in Sources */,
+				6F7D550D2AB7A50E00F78960 /* Cache.swift in Sources */,
+				6F7D55312ACA092500F78960 /* WalletCreateSeedRetrieveView.swift in Sources */,
+				6F7D550B2AAECD8100F78960 /* WalletSetup.swift in Sources */,
+				6F7D55262AC9FD8900F78960 /* WalletTextField.swift in Sources */,
+				6F7D552F2ACA086400F78960 /* WalletCreatePasswordView.swift in Sources */,
 				6F9F4BA329EB86D50035922A /* MetaMaskNetwork.swift in Sources */,
+				6F7D55242AC9FC8A00F78960 /* ViewModifier.swift in Sources */,
+				6F7D551A2AC7CD0800F78960 /* WalletSetupStyledButton.swift in Sources */,
+				6F7D551E2AC9EFDF00F78960 /* WalletImportView.swift in Sources */,
 				6F9F4BA229EB86D50035922A /* Wallet.swift in Sources */,
 				6F9F4BB229EB87400035922A /* Color.swift in Sources */,
 				6F9F4BB429EB87400035922A /* DAppViewModel.swift in Sources */,
+				6F7D55202AC9F02500F78960 /* WalletCreateView.swift in Sources */,
 				6F9F4BA429EB86D50035922A /* WalletLinkerViewModel.swift in Sources */,
+				6F7D552A2AC9FFB600F78960 /* EllipticalProgress.swift in Sources */,
 				6F9F4BBB29EB878D0035922A /* ConnectViews.swift in Sources */,
+				6F7D55182AC7CBD600F78960 /* WalletSetupMenuView.swift in Sources */,
+				6F7D54F12AA8E65F00F78960 /* WalletsStoredManager.swift in Sources */,
 				6F9F4BA129EB86D50035922A /* ConnectWalletSheetView.swift in Sources */,
+				6F7D55392AD0FFCF00F78960 /* RedRiverColonyParentView.swift in Sources */,
 				6F9F4BB329EB87400035922A /* SIWEDemoView.swift in Sources */,
+				6F7D55332ACA09A300F78960 /* WalletCreateseedConfirmationView.swift in Sources */,
+				6F7D55352ACA09F600F78960 /* WalletCreateSuccessView.swift in Sources */,
+				6F7D55092AAC086300F78960 /* Keystore.swift in Sources */,
+				6F7D55372AD0FF6900F78960 /* ContractRetriever.swift in Sources */,
 				6F9F4BC029EB8AB00035922A /* SIWEMessage.swift in Sources */,
 				6F9F4BBD29EB878D0035922A /* WalletLinkedViewModel.swift in Sources */,
 				6F9F4BB129EB87400035922A /* MessageView.swift in Sources */,
+				6F7D550F2AB7A65100F78960 /* Etherscan.swift in Sources */,
+				6F7D55222AC9F22600F78960 /* WalletImportViewModel.swift in Sources */,
 				6FC49FE629F76037002576F4 /* ENSProfileView.swift in Sources */,
 				6F9F4BB529EB87400035922A /* ArtisticSpinner.swift in Sources */,
 				6F9F4BB029EB87400035922A /* DAppScreen.swift in Sources */,
+				6F7D55152AC7C7D700F78960 /* WalletSelectorView.swift in Sources */,
 				6F9F4BA529EB86D50035922A /* ConnectWalletButton.swift in Sources */,
 				6F9F4BB629EB87400035922A /* WalletViewModel.swift in Sources */,
+				6F7D552C2ACA05AD00F78960 /* WalletCreateViewModel.swift in Sources */,
+				6F7D55072AAC07EF00F78960 /* KeyChain.swift in Sources */,
 				6F9F4BAF29EB87400035922A /* WalletScreen.swift in Sources */,
 				6F9F4B5E29EB336B0035922A /* RedRiverColony_ethApp.swift in Sources */,
 			);
@@ -494,7 +628,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 16.2;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -548,7 +682,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 16.2;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				SDKROOT = iphoneos;
@@ -570,6 +704,7 @@
 				DEVELOPMENT_TEAM = U4R9TJ5FN4;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "RedRiverColony-eth-Info.plist";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -600,6 +735,7 @@
 				DEVELOPMENT_TEAM = U4R9TJ5FN4;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "RedRiverColony-eth-Info.plist";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
